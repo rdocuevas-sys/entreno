@@ -312,12 +312,13 @@ banca:{v:'S',eq:'plate',bg:()=>bench(52,96,100)+floor(),
      {fc:UP,hd:[58,89],sh:[76,96],hp:[120,96],el:[78,76],hn:[80,58],kn:[140,116],ft:[140,142]}],
   ar:[[[98,80],[98,56]]]},
 
-bancaIncl:{v:'S',eq:'dbS',
-  bg:()=>`<polygon points="72,62 82,56 124,102 114,108" fill="#fff" stroke="${I}" stroke-width="3"/>`
-    +box(112,100,50,9,'#fff')+ln([122,109],[122,142],4)+ln([152,109],[152,142],4)+floor(),
-  p:[{fc:[.6,-.8],hd:[80,58],sh:[94,74],hp:[128,98],el:[92,84],hn:[104,72],kn:[152,114],ft:[152,142]},
-     {fc:[.6,-.8],hd:[80,58],sh:[94,74],hp:[128,98],el:[106,58],hn:[120,42],kn:[152,114],ft:[152,142]}],
-  ar:[[[116,74],[134,50]]]},
+/* Flexiones con los pies en la banca. Reemplaza al press inclinado:
+   la banca de casa es plana y no se ajusta. */
+flexPies:{v:'S',eq:null,
+  bg:()=>bench(148,92,46)+floor(),
+  p:[{fc:[-.4,.7],hd:[50,104],sh:[68,110],hp:[118,102],el:[66,124],hn:[64,138],kn:[144,97],ft:[162,92]},
+     {fc:[-.4,.7],hd:[55,115],sh:[74,121],hp:[118,107],el:[78,135],hn:[64,138],kn:[144,99],ft:[162,92]}],
+  ar:[[[38,128],[34,106]]]},
 
 militar:{v:'S',eq:'plate',bg:()=>floor(),
   p:[{fc:LT,hd:[100,38],sh:[100,52],hp:[100,86],el:[88,64],hn:[92,54],kn:[98,112],ft:[98,142]},
@@ -523,8 +524,8 @@ A:[
   c:'Escápulas retraídas y pies firmes en el suelo. Baja la barra a la línea del pecho, no al cuello. Es tu ejercicio de fuerza principal: acá cargas.'},
  {n:'Press militar de pie con barra',s:4,r:'8-10',rir:2,rest:'2 min',d:'militar',
   c:'De pie, glúteo y abdomen apretados. Si la lumbar se arquea, el peso es mucho. La barra sube en línea recta pasando cerca de la cara.'},
- {n:'Press inclinado con mancuernas',s:3,r:'12-15',rir:1,rest:'90 s',d:'bancaIncl',
-  c:'Inclina la banca si se ajusta; si no, usa banca plana. Con 10 kg baja en 3 segundos: el tiempo bajo tensión reemplaza el peso que te falta.'},
+ {n:'Flexiones con los pies en la banca',s:3,r:'12-15',rir:1,rest:'90 s',d:'flexPies',
+  c:'Va en lugar del press inclinado, porque tu banca es plana. Con los pies arriba el esfuerzo se corre a la parte alta del pecho, que es justo lo que la banca plana no alcanza. Cuerpo en línea recta de talón a cabeza, sin hundir la cadera. Baja en 3 segundos hasta rozar el suelo con el pecho. Cuando 15 te queden fáciles, sube los pies más alto.'},
  {n:'Aperturas con mancuernas',s:3,r:'15',rir:1,rest:'60 s',d:'aperturas',
   c:'Codos ligeramente flexionados y fijos durante todo el recorrido. Abre hasta sentir el estiramiento del pecho, sin forzar el hombro.'},
  {n:'Elevaciones laterales',s:3,r:'15-20',rir:1,rest:'45 s',d:'laterales',
