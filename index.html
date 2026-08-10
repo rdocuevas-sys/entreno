@@ -318,7 +318,22 @@ flexPies:{v:'S',eq:null,
   bg:()=>bench(148,92,46)+floor(),
   p:[{fc:[-.4,.7],hd:[50,104],sh:[68,110],hp:[118,102],el:[66,124],hn:[64,138],kn:[144,97],ft:[162,92]},
      {fc:[-.4,.7],hd:[55,115],sh:[74,121],hp:[118,107],el:[78,135],hn:[64,138],kn:[144,99],ft:[162,92]}],
-  ar:[[[38,128],[34,106]]]},
+  ar:[[[34,106],[38,128]]]},
+
+/* Sentadilla búlgara. Reemplaza a la sentadilla con barra: no hay soporte
+   donde cargarse la barra al hombro. */
+bulgara:{v:'S',eq:'dbS',
+  bg:()=>bench(126,112,58)+floor(),
+  p:[{fc:LT,hd:[90,40],sh:[90,54],hp:[88,86],el:[93,72],hn:[95,90],kn:[80,112],ft:[78,142],kn2:[108,115],ft2:[138,112]},
+     {fc:LT,hd:[100,70],sh:[100,84],hp:[98,116],el:[103,102],hn:[105,120],kn:[71,113],ft:[78,142],kn2:[124,139],ft2:[138,112]}],
+  ar:[[[46,66],[46,112]]]},
+
+/* Peso muerto rumano a una pierna. Reemplaza a los buenos días, que también
+   necesitaban la barra sobre los hombros. */
+rdl1p:{v:'S',eq:'dbS',bg:()=>floor(),
+  p:[{fc:LT,hd:[92,40],sh:[94,54],hp:[96,86],el:[100,72],hn:[102,90],kn:[98,112],ft:[100,142],kn2:[110,114],ft2:[118,140]},
+     {fc:[-.7,.5],hd:[64,80],sh:[78,82],hp:[110,88],el:[79,99],hn:[80,118],kn:[100,112],ft:[100,142],kn2:[140,92],ft2:[168,88]}],
+  ar:[[[46,74],[46,110]]]},
 
 militar:{v:'S',eq:'plate',bg:()=>floor(),
   p:[{fc:LT,hd:[100,38],sh:[100,52],hp:[100,86],el:[88,64],hn:[92,54],kn:[98,112],ft:[98,142]},
@@ -373,6 +388,8 @@ pullover:{v:'S',eq:'dbS',
      {fc:UP,hd:[152,92],sh:[134,96],hp:[86,96],el:[140,76],hn:[126,58],kn:[70,116],ft:[70,142]}],
   ar:[[[178,62],[132,42],14]]},
 
+/* buenosDias y sentadilla quedaron sin uso: los dos pedían la barra sobre los
+   hombros y no hay soporte donde cargarla. Se conservan por si algún día lo hay. */
 buenosDias:{v:'S',eq:'plate',bg:()=>floor(),
   p:[{fc:LT,hd:[104,36],sh:[100,54],hp:[100,86],el:[84,66],hn:[86,58],kn:[100,112],ft:[100,142]},
      {fc:LT,hd:[60,66],sh:[78,72],hp:[112,86],el:[82,86],hn:[86,80],kn:[110,112],ft:[106,142]}],
@@ -546,8 +563,8 @@ B:[
   c:'Rodilla y mano apoyadas en la banca. Con 10 kg, haz pausa de 1 segundo arriba en cada repetición.'},
  {n:'Pull-over con mancuerna',s:3,r:'12',rir:1,rest:'90 s',d:'pullover',
   c:'Acostado atravesado en la banca, cadera baja. Lleva la mancuerna por detrás de la cabeza buscando el estiramiento del dorsal.'},
- {n:'Buenos días con barra',s:3,r:'12',rir:2,rest:'90 s',d:'buenosDias',
-  c:'Peso liviano, siempre. Barra en la espalda alta, cadera atrás, espalda neutra. Trabaja los erectores espinales de forma directa.'},
+ {n:'Peso muerto rumano a una pierna con mancuernas',s:3,r:'10-12 x pierna',rir:2,rest:'90 s',d:'rdl1p',
+  c:'Va en lugar de los buenos días, que también pedían la barra sobre los hombros. De pie sobre una pierna, la otra se estira hacia atrás mientras el torso baja: cadera y hombros bajan juntos, como una balanza. Peso liviano y espalda neutra. Trabaja los erectores y además te corrige la diferencia entre un lado y el otro. Puedes afirmarte con una mano en la banca.'},
  {n:'Curl con barra de tríceps',s:3,r:'10-12',rir:1,rest:'60 s',d:'curl',
   c:'Codos pegados al costado y quietos. Sin balanceo de tronco. La barra angulada te cuida las muñecas.'},
  {n:'Curl martillo con mancuernas',s:3,r:'12-15',rir:1,rest:'60 s',d:'martillo',
@@ -558,8 +575,8 @@ B:[
   c:'1 minuto fuerte / 1 minuto suave, cinco rondas. Cuida la técnica cuando llegue la fatiga: primero empujan las piernas, después tira la espalda.'}
 ],
 C:[
- {n:'Sentadilla con barra',s:4,r:'8-10',rir:2,rest:'3 min',d:'sentadilla',
-  c:'Baja hasta donde controles con espalda neutra. Con 190 cm necesitas buena movilidad de tobillo: si los talones se levantan, calza con algo plano bajo ellos.'},
+ {n:'Sentadilla búlgara con mancuernas',s:3,r:'10-12 x pierna',rir:2,rest:'2 min',d:'bulgara',
+  c:'Va en lugar de la sentadilla con barra, que necesita un soporte para cargártela al hombro. Pie de atrás sobre la banca, mancuernas colgando a los lados. El peso lo lleva la pierna de adelante; la de atrás solo equilibra. Baja hasta que la rodilla trasera quede a un palmo del suelo, torso vertical. Si al principio te vas de lado, afírmate con una mano en la pared.'},
  {n:'Peso muerto convencional',s:3,r:'6-8',rir:2,rest:'3 min',d:'pesoMuerto',
   c:'El más exigente de la semana. Barra pegada a la tibia, pecho arriba, empuja el suelo. Técnica antes que peso, siempre.'},
  {n:'Zancadas con mancuernas',s:3,r:'12 x pierna',rir:1,rest:'90 s',d:'zancada',
