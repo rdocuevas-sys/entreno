@@ -1,3 +1,4 @@
+<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Plan de entrenamiento — casa</title>
@@ -644,7 +645,14 @@ function toast(m){
   t.textContent=m; t.classList.add('on');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2200);
 }
-const hoy = ()=> new Date().toISOString().slice(0,10);
+/* Fecha LOCAL, no UTC. Con toISOString() todo lo anotado después de las 20:00
+   en Chile quedaba con la fecha del día siguiente, y al entrenar al otro día
+   se sobreescribía la sesión de la noche anterior. */
+const hoy = ()=>{
+  const d = new Date();
+  const dos = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${dos(d.getMonth()+1)}-${dos(d.getDate())}`;
+};
 const nz = v => (v===''||v===null||v===undefined||isNaN(v))?0:+v;
 
 /* ---- objetivos calculados ---- */
@@ -778,10 +786,10 @@ function vComida(){
       <div><label>Grasa g</label><input type="number" inputmode="numeric" data-com="g" value="${d.g??''}"></div>
     </div>
     <div style="margin-top:14px">
-      <div class="eyebrow">Calorías · objetivo ${objKcal}</div>
-      <div class="bar"><i class="${nz(d.kcal)>objKcal*1.05?'over':''}" style="width:${pct(d.kcal,objKcal)}%"></i></div>
-      <div class="eyebrow" style="margin-top:10px">Proteína · objetivo ${t.p} g</div>
-      <div class="bar"><i style="width:${pct(d.p,t.p)}%"></i></div>
+      <div class="eyebrow" id="lblKcal">Calorías · objetivo ${objKcal}</div>
+      <div class="bar"><i id="barKcal" class="${nz(d.kcal)>objKcal*1.05?'over':''}" style="width:${pct(d.kcal,objKcal)}%"></i></div>
+      <div class="eyebrow" id="lblProt" style="margin-top:10px">Proteína · objetivo ${t.p} g</div>
+      <div class="bar"><i id="barProt" style="width:${pct(d.p,t.p)}%"></i></div>
     </div>
     <div class="grid g3" style="margin-top:14px">
       <div><label>Agua L</label><input type="number" inputmode="decimal" step="0.1" data-com="agua" value="${d.agua??''}"></div>
@@ -907,19 +915,25 @@ function vResumen(){
   });
   h+=`</tbody></table></div>`;
 
-  const t=targets(), last=rows[rows.length-1];
+  /* La lectura mira la última semana CON DATOS y la compara con la anterior
+     que también los tenga. Antes miraba rows[rows.length-1], que es la semana
+     en curso y está vacía recién empezada: el diagnóstico decía "sin alertas"
+     pasara lo que pasara. */
+  const t=targets();
+  const conDatos = rows.filter(r=>r.ses>0 || r.dias>0 || r.peso!=null);
+  const last = conDatos[conDatos.length-1];
+  const prev = conDatos[conDatos.length-2];
   if(last){
     let diag=[];
     if(last.p!==null && last.p < t.p*0.9) diag.push(['bad','Proteína bajo el objetivo. Es el problema número uno: sin ella, el déficit se come el músculo.']);
     if(last.adh!==null && +last.adh<3) diag.push(['warn','Adherencia baja. Antes de exigirte más, hay que simplificar el plan.']);
-    if(rows.length>1){
-      const p=rows[rows.length-2];
-      if(last.peso&&p.peso&&(p.peso-last.peso)>1) diag.push(['warn','Bajaste más de 1 kg esta semana. Demasiado rápido: sube unas 250 kcal.']);
-      if(last.vol&&p.vol&&last.vol<p.vol*0.95) diag.push(['warn','El volumen de fuerza cayó. Suele ser déficit muy agresivo o poco sueño.']);
-      if(last.peso&&p.peso&&Math.abs(last.peso-p.peso)<0.2&&last.cint&&p.cint&&last.cint<p.cint) diag.push(['ok','Peso estable y cintura bajando: estás en plena recomposición. No cambies nada.']);
+    if(prev){
+      if(last.peso&&prev.peso&&(prev.peso-last.peso)>1) diag.push(['warn','Bajaste más de 1 kg esta semana. Demasiado rápido: sube unas 250 kcal.']);
+      if(last.vol&&prev.vol&&last.vol<prev.vol*0.95) diag.push(['warn','El volumen de fuerza cayó. Suele ser déficit muy agresivo o poco sueño.']);
+      if(last.peso&&prev.peso&&Math.abs(last.peso-prev.peso)<0.2&&last.cint&&prev.cint&&last.cint<prev.cint) diag.push(['ok','Peso estable y cintura bajando: estás en plena recomposición. No cambies nada.']);
     }
     if(!diag.length) diag.push(['ok','Sin alertas con los datos cargados. Sigue así y revisamos en una semana.']);
-    h+=`<h2>Lectura</h2><div class="card">`;
+    h+=`<h2>Lectura — semana ${last.w}</h2><div class="card">`;
     diag.forEach(d=>h+=`<p style="margin:0 0 10px"><span class="pill ${d[0]==='ok'?'':d[0]}">${d[0]==='ok'?'Bien':d[0]==='warn'?'Ojo':'Corregir'}</span> ${d[1]}</p>`);
     h+=`</div>`;
   }
@@ -965,6 +979,15 @@ function expText(){
 }
 
 /* ---------- AJUSTES ---------- */
+function statsAjustesHTML(){
+  const t=targets();
+  return `<div class="stat"><b>${t.tmb}</b><small>metabolismo basal</small></div>
+    <div class="stat"><b>${t.tdee}</b><small>gasto diario total</small></div>
+    <div class="stat"><b>${t.kcal}</b><small>objetivo diario</small></div>
+    <div class="stat"><b>${t.perdida} kg</b><small>pérdida semanal esperada</small></div>
+    <div class="stat"><b>${t.p} g</b><small>proteína</small></div>
+    <div class="stat"><b>${t.ch} g</b><small>carbohidratos</small></div>`;
+}
 function vAjustes(){
   const c=S.cfg,t=targets();
   return `<h2>Ajustes</h2>
@@ -990,20 +1013,46 @@ function vAjustes(){
       <div><label>Semana actual</label><input type="number" data-sem="1" value="${S.semana}"></div>
     </div>
   </div>
-  <div class="card grid g3">
-    <div class="stat"><b>${t.tmb}</b><small>metabolismo basal</small></div>
-    <div class="stat"><b>${t.tdee}</b><small>gasto diario total</small></div>
-    <div class="stat"><b>${t.kcal}</b><small>objetivo diario</small></div>
-    <div class="stat"><b>${t.perdida} kg</b><small>pérdida semanal esperada</small></div>
-    <div class="stat"><b>${t.p} g</b><small>proteína</small></div>
-    <div class="stat"><b>${t.ch} g</b><small>carbohidratos</small></div>
-  </div>
+  <div class="card grid g3" id="statsAjustes">${statsAjustesHTML()}</div>
   <div class="note">Entre 0,4 y 0,8 kg por semana es la zona correcta. Más rápido que eso y una parte de lo que pierdes es músculo, justo lo que estamos tratando de construir.</div>
   <h2>Datos</h2>
   <div class="card">
     <button class="act ghost" id="btnReset">Borrar todos mis registros</button>
     <p class="lede" style="margin:10px 0 0">Elimina entrenamientos, comidas y medidas de este dispositivo. No se puede deshacer.</p>
   </div>`;
+}
+
+/* ============================================================
+   4b. REFRESCOS EN EL SITIO
+   ------------------------------------------------------------
+   No se puede llamar a render() mientras alguien está escribiendo:
+   rehacer el HTML destruye el campo, se pierde el foco y el número
+   queda a medias (escribir 2380 kcal terminaba guardando 32, y 89,4
+   de peso terminaba en 8 kg). Estas funciones actualizan solo lo
+   que depende del dato, sin tocar los campos.
+   ============================================================ */
+function refrescarCabecera(){
+  const t=targets();
+  document.getElementById('hdrTargets').textContent =
+    `${t.kcal} kcal · ${t.p} g proteína · semana ${S.semana}`;
+}
+function refrescarComida(){
+  const lk=document.getElementById('lblKcal'); if(!lk) return;
+  const t=targets();
+  const d=S.comida.find(x=>x.f===hoy())||{};
+  const pct=(v,o)=>Math.min(100,Math.round(nz(v)/o*100));
+  const objKcal = d.tipo==='Alto'?t.alto : d.tipo==='Bajo'?t.bajo : t.kcal;
+  lk.textContent = `Calorías · objetivo ${objKcal}`;
+  const bk=document.getElementById('barKcal');
+  bk.style.width = pct(d.kcal,objKcal)+'%';
+  bk.className = nz(d.kcal)>objKcal*1.05?'over':'';
+  document.getElementById('lblProt').textContent = `Proteína · objetivo ${t.p} g`;
+  document.getElementById('barProt').style.width = pct(d.p,t.p)+'%';
+}
+function refrescarAjustes(){
+  const c=document.getElementById('statsAjustes');
+  if(c) c.innerHTML = statsAjustesHTML();
+  refrescarCabecera();
 }
 
 /* ============================================================
@@ -1079,7 +1128,7 @@ document.addEventListener('input',e=>{
     let row=S.comida.find(x=>x.f===hoy());
     if(!row){ row={f:hoy(),sem:S.semana}; S.comida.push(row); }
     row[el.dataset.com]=v; row.sem=S.semana; save();
-    if(['kcal','p','tipo'].includes(el.dataset.com)){ const y=window.scrollY; render(); window.scrollTo(0,y); }
+    if(['kcal','p','tipo'].includes(el.dataset.com)) refrescarComida();
     return;
   }
   if(el.dataset.med){
@@ -1089,8 +1138,14 @@ document.addEventListener('input',e=>{
     row[k]= k==='f'? v : (v===''?'':+v);
     save(); return;
   }
-  if(el.dataset.cfg){ S.cfg[el.dataset.cfg]=+v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
-  if(el.dataset.sem){ S.semana=+v||1; save(); return; }
+  if(el.dataset.cfg){
+    if(v==='') return;              /* campo a medio borrar: no se guarda un 0 */
+    S.cfg[el.dataset.cfg]=+v; save(); refrescarAjustes(); return;
+  }
+  if(el.dataset.sem){
+    if(v==='') return;
+    S.semana=+v||1; save(); refrescarCabecera(); return;
+  }
 });
 
 /* ============================================================
