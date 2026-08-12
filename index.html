@@ -710,7 +710,19 @@ const DEF = {
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
   cardio:[],   // {f,sem,tipo,min,int,kcal,nota}
   comida:[],   // {f,sem,tipo,kcal,p,c,g,agua,ayuno,adh,txt,nota}
-  medidas:[]   // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota}
+  medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota}
+  sesiones:[]  // {f,sem,dia,sueno,zona,dolor,nota} — cómo llegaste a entrenar
+};
+/* La molestia sirve si es accionable: por eso cada zona sabe qué ejercicios
+   la cargan, y la alerta dice cuáles bajar en vez de un "cuidado" genérico. */
+const ZONAS = ['Ninguna','Espalda baja','Hombro','Rodilla','Codo','Muñeca','Cuello','Otra'];
+const EJ_POR_ZONA = {
+  'Espalda baja':'el peso muerto y el rumano',
+  'Hombro':'el press militar y las aperturas',
+  'Rodilla':'la búlgara y la goblet',
+  'Codo':'el press francés y los curls',
+  'Muñeca':'el press banca y las flexiones',
+  'Cuello':'el press militar y los pájaros'
 };
 let S = JSON.parse(JSON.stringify(DEF));
 let storageOK = true;
@@ -1092,6 +1104,21 @@ function vHoy(){
     h+=`</div></article>`;
   });
 
+  const ses = S.sesiones.find(x=>x.f===hoy()) || {};
+  h+=`<div class="card" style="margin-bottom:12px">
+    <div class="eyebrow">Cómo llegaste hoy</div>
+    <p class="lede" style="margin:6px 0 10px">Diez segundos. Es lo que le permite al Resumen avisarte antes de que te lesiones o de que el estancamiento te pille sin explicación.</p>
+    <div class="grid g3">
+      <div><label>Dormiste anoche (h)</label>
+        <input type="number" inputmode="decimal" step="0.5" data-ses="sueno" value="${ses.sueno??''}"></div>
+      <div><label>Molestia</label><select data-ses="zona">
+        ${ZONAS.map(z=>`<option ${(ses.zona||'Ninguna')===z?'selected':''}>${z}</option>`).join('')}
+      </select></div>
+      <div><label>Cuánto</label><select data-ses="dolor">
+        ${['—','Leve','Media','Fuerte'].map(z=>`<option ${(ses.dolor||'—')===z?'selected':''}>${z}</option>`).join('')}
+      </select></div>
+    </div>
+  </div>`;
   h+=`<div class="guardar">
     <button class="act" id="btnGuardar">Guardar sesión</button>
     <span class="gstat" id="gStat">${textoGuardado()}</span>
@@ -1242,10 +1269,28 @@ function weekAgg(w){
   const co=S.comida.filter(x=>semanaDe(x.f)===w && nz(x.kcal)>0);
   const avg=(k)=>co.length?Math.round(co.reduce((a,x)=>a+nz(x[k]),0)/co.length):null;
   const m=S.medidas.find(x=>semanaDe(x.f)===w);
-  return {w,ses,vol:Math.round(vol),min,dias:co.length,
+  const se=S.sesiones.filter(x=>semanaDe(x.f)===w);
+  const cs=se.filter(x=>nz(x.sueno)>0);
+  const sueno = cs.length ? +(cs.reduce((a,x)=>a+nz(x.sueno),0)/cs.length).toFixed(1) : null;
+  return {w,ses,vol:Math.round(vol),min,dias:co.length,sueno,
           kcal:avg('kcal'),p:avg('p'),c:avg('c'),g:avg('g'),
           adh:co.length?(co.reduce((a,x)=>a+nz(x.adh),0)/co.length).toFixed(1):null,
           peso:m?m.peso:null, cint:m?m.cint:null};
+}
+/* Cuántas sesiones SEGUIDAS vienes arrastrando la misma molestia. Una sesión
+   suelta con el hombro sensible es ruido; tres seguidas es una señal. */
+function molestiaRepetida(){
+  const todas = S.sesiones.filter(x=>!isNaN(fechaMs(x.f)))
+                          .sort((a,b)=>fechaMs(a.f)-fechaMs(b.f));
+  if(!todas.length) return null;
+  const u = todas[todas.length-1];
+  const zona = u.zona;
+  if(!zona || zona==='Ninguna' || !u.dolor || u.dolor==='—') return null;
+  let n=0;
+  for(let i=todas.length-1;i>=0;i--){
+    if(todas[i].zona===zona && todas[i].dolor && todas[i].dolor!=='—') n++; else break;
+  }
+  return n>=2 ? {zona, n, fuerte:u.dolor==='Fuerte'} : null;
 }
 function vResumen(){
   const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida,...S.medidas]
@@ -1255,7 +1300,7 @@ function vResumen(){
   <p class="lede">Se arma solo con lo que vas cargando. Exporta al final de cada semana y pásame el texto para ajustar el plan.</p>
   <div class="scroll"><table class="tbl"><thead><tr>
     <th>Sem</th><th>Ses.</th><th>Volumen kg</th><th>Cardio min</th><th>Días com.</th>
-    <th>Kcal/día</th><th>Prot/día</th><th>Adher.</th><th>Peso</th><th>Cintura</th>
+    <th>Kcal/día</th><th>Prot/día</th><th>Adher.</th><th>Sueño</th><th>Peso</th><th>Cintura</th>
   </tr></thead><tbody>`;
   rows.forEach((r,i)=>{
     const p=rows[i-1];
@@ -1263,8 +1308,9 @@ function vResumen(){
     const dc=(p&&r.cint&&p.cint)?(r.cint-p.cint).toFixed(1):'';
     h+=`<tr><td>${r.w}</td><td>${r.ses||''}</td><td>${r.vol||''}</td><td>${r.min||''}</td>
       <td>${r.dias||''}</td><td>${r.kcal??''}</td><td>${r.p??''}</td><td>${r.adh??''}</td>
-      <td>${r.peso??''}${dp?` <small>(${dp>0?'+':''}${dp})</small>`:''}</td>
-      <td>${r.cint??''}${dc?` <small>(${dc>0?'+':''}${dc})</small>`:''}</td></tr>`;
+      <td>${r.sueno!=null?coma(r.sueno)+' h':''}</td>
+      <td>${coma(r.peso??'')}${dp?` <small>(${dp>0?'+':''}${coma(dp)})</small>`:''}</td>
+      <td>${coma(r.cint??'')}${dc?` <small>(${dc>0?'+':''}${coma(dc)})</small>`:''}</td></tr>`;
   });
   h+=`</tbody></table></div>`;
 
@@ -1278,11 +1324,23 @@ function vResumen(){
   const prev = conDatos[conDatos.length-2];
   if(last){
     let diag=[];
+    const mol = molestiaRepetida();
+    if(mol){
+      const cuales = EJ_POR_ZONA[mol.zona];
+      diag.push([mol.fuerte?'bad':'warn',
+        `Llevas <b>${mol.n} sesiones seguidas</b> con molestia en ${mol.zona.toLowerCase()}${mol.fuerte?', y la última fuerte':''}. `
+        + (cuales?`Baja la carga en ${cuales} un 20 % esta semana y sube el rango de repeticiones para compensar. `:'Baja la carga de lo que cargue esa zona. ')
+        + `Entrenas solo: una molestia que se repite tres veces no se aguanta, se corrige.`]);
+    }
+    if(last.sueno!==null && last.sueno<7) diag.push(['warn',`Dormiste <b>${coma(last.sueno)} h</b> de media. Bajo 7 horas el músculo no alcanza a repararse: arreglar eso rinde más que cualquier ajuste de calorías o de series.`]);
     if(last.p!==null && last.p < t.p*0.9) diag.push(['bad','Proteína bajo el objetivo. Es el problema número uno: sin ella, el déficit se come el músculo.']);
     if(last.adh!==null && +last.adh<3) diag.push(['warn','Adherencia baja. Antes de exigirte más, hay que simplificar el plan.']);
     if(prev){
       if(last.peso&&prev.peso&&(prev.peso-last.peso)>1) diag.push(['warn','Bajaste más de 1 kg esta semana. Demasiado rápido: sube unas 250 kcal.']);
-      if(last.vol&&prev.vol&&last.vol<prev.vol*0.95) diag.push(['warn','El volumen de fuerza cayó. Suele ser déficit muy agresivo o poco sueño.']);
+      if(last.vol&&prev.vol&&last.vol<prev.vol*0.95) diag.push(['warn','El volumen de fuerza cayó.'
+        + (last.sueno!==null && last.sueno<7
+           ? ' Con las horas de sueño que traes, la causa está ahí antes que en la comida.'
+           : ' Suele ser déficit muy agresivo o poco sueño.')]);
       if(last.peso&&prev.peso&&Math.abs(last.peso-prev.peso)<0.2&&last.cint&&prev.cint&&last.cint<prev.cint) diag.push(['ok','Peso estable y cintura bajando: estás en plena recomposición. No cambies nada.']);
     }
     if(!diag.length) diag.push(['ok','Sin alertas con los datos cargados. Sigue así y revisamos en una semana.']);
@@ -1320,7 +1378,9 @@ function expText(){
     o+=`--- SEMANA ${w} ---\n`;
     o+=`Sesiones: ${r.ses} · Volumen: ${r.vol} kg · Cardio: ${r.min} min\n`;
     o+=`Nutrición (${r.dias} días): ${r.kcal??'-'} kcal · ${r.p??'-'} g prot · ${r.c??'-'} g carb · ${r.g??'-'} g grasa · adherencia ${r.adh??'-'}\n`;
-    o+=`Peso: ${r.peso??'-'} kg · Cintura: ${r.cint??'-'} cm\n`;
+    o+=`Peso: ${r.peso??'-'} kg · Cintura: ${r.cint??'-'} cm · Sueño: ${r.sueno??'-'} h\n`;
+    const mol=S.sesiones.filter(x=>semanaDe(x.f)===w && x.zona && x.zona!=='Ninguna' && x.dolor && x.dolor!=='—');
+    if(mol.length) o+=`Molestias: ${mol.map(x=>`${fechaCorta(x.f)} ${x.zona} (${x.dolor})`).join(', ')}\n`;
     const ejs=[...new Set(S.fuerza.filter(x=>semanaDe(x.f)===w&&nz(x.reps)>0).map(x=>x.ej))];
     ejs.forEach(e=>{
       const st=S.fuerza.filter(x=>semanaDe(x.f)===w&&x.ej===e&&nz(x.reps)>0);
@@ -1495,7 +1555,7 @@ function importar(){
   let d;
   try{ d = JSON.parse(txt); }
   catch(e){ toast('Eso no es un JSON válido — cópialo completo'); return; }
-  const listas = ['fuerza','cardio','comida','medidas'];
+  const listas = ['fuerza','cardio','comida','medidas','sesiones'];
   if(!d || typeof d!=='object' || Array.isArray(d) || !listas.some(k=>Array.isArray(d[k]))){
     toast('El respaldo no tiene la forma esperada'); return;
   }
@@ -1532,6 +1592,11 @@ document.addEventListener('input',e=>{
     art.classList.toggle('done',done===total);
     refrescarGuardado();
     return;
+  }
+  if(el.dataset.ses){
+    let row=S.sesiones.find(x=>x.f===hoy());
+    if(!row){ row={f:hoy(),sem:semanaHoy(),dia}; S.sesiones.push(row); }
+    row[el.dataset.ses]=v; row.dia=dia; save(); return;
   }
   if(el.dataset.car){
     const tipo=el.dataset.car, fld=el.dataset.fld;
