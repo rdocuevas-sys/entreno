@@ -196,6 +196,12 @@
   .pill.bad{background:#F7E6E1;color:var(--rust)}
   .note{background:#FBF0DC;border-left:3px solid var(--amber);padding:11px 13px;
         border-radius:0 8px 8px 0;font-size:13.5px;margin-bottom:12px}
+  /* ---- cierre de sesión: guardar y ver qué quedó guardado ---- */
+  .guardar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+           background:var(--pine-lt);border-radius:var(--r);padding:14px;margin-bottom:12px}
+  .guardar button{flex:0 0 auto}
+  .gstat{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.5;
+         color:var(--pine);flex:1 1 160px}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(80px);
          background:var(--ink);color:#fff;padding:11px 20px;border-radius:99px;font-size:13.5px;
          opacity:0;transition:.25s;z-index:99;pointer-events:none}
@@ -276,6 +282,11 @@ function equip(kind,p,view){
   if(kind==='plate') return plate(p.hn);
   if(kind==='dbS')   return dbS(p.hn);
   if(kind==='dbS2')  return dbS(p.hn)+dbS([p.hn[0]+24,p.hn[1]]);
+  /* De perfil, una mancuerna con agarre neutro (palma hacia adentro) se ve
+     a lo largo, no de canto: por eso va la forma horizontal. */
+  if(kind==='dbH')   return dbF(p.hn);
+  /* Las dos manos dibujadas por separado, cada una con su mancuerna. */
+  if(kind==='dbDual')return dbS(p.hn)+(p.hn2?dbS(p.hn2):'');
   return '';
 }
 
@@ -395,16 +406,27 @@ buenosDias:{v:'S',eq:'plate',bg:()=>floor(),
      {fc:LT,hd:[60,66],sh:[78,72],hp:[112,86],el:[82,86],hn:[86,80],kn:[110,112],ft:[106,142]}],
   ar:[[[122,60],[136,74],8],[[80,34],[48,62],-12]]},
 
-curl:{v:'F',eq:'barF',bg:()=>floor(),
-  p:[{hd:[100,32],sh:[100,48],hp:[100,86],sL:[88,48],sR:[112,48],eL:[86,68],eR:[114,68],hL:[86,88],hR:[114,88],kL:[90,112],kR:[110,112],fL:[90,142],fR:[110,142]},
-     {hd:[100,32],sh:[100,48],hp:[100,86],sL:[88,48],sR:[112,48],eL:[86,68],eR:[114,68],hL:[92,50],hR:[108,50],kL:[90,112],kR:[110,112],fL:[90,142],fR:[110,142]}],
-  ar:[[[66,90],[66,56],-10],[[134,90],[134,56],10]]},
+/* Curl, martillo y pájaros estaban dibujados de frente y no se entendían: el
+   antebrazo del curl sube en el plano de adelante — de frente va hacia el que
+   mira, así que no se ve, y las mancuernas terminaban dibujadas encima del
+   torso. El pájaro, además, salía de pie y erguido, justo lo contrario de lo
+   que pide el texto. Los tres pasaron a vista de perfil. */
+curl:{v:'S',eq:'plate',bg:()=>floor(),
+  p:[{fc:LT,hd:[104,34],sh:[102,52],hp:[100,86],el:[90,74],hn:[80,92],kn:[98,112],ft:[100,142]},
+     {fc:LT,hd:[104,34],sh:[102,52],hp:[100,86],el:[90,74],hn:[86,54],kn:[98,112],ft:[100,142]}],
+  ar:[[[64,96],[68,58],-11]]},
 
-martillo:{v:'F',eq:'dbF',bg:()=>floor(),
-  p:[{hd:[100,32],sh:[100,48],hp:[100,86],sL:[88,48],sR:[112,48],eL:[86,68],eR:[114,68],hL:[82,90],hR:[118,90],kL:[90,112],kR:[110,112],fL:[90,142],fR:[110,142]},
-     {hd:[100,32],sh:[100,48],hp:[100,86],sL:[88,48],sR:[112,48],eL:[86,68],eR:[114,68],hL:[88,52],hR:[112,52],kL:[90,112],kR:[110,112],fL:[90,142],fR:[110,142]}],
-  ar:[[[62,90],[62,56],-10],[[138,90],[138,56],10]]},
+martillo:{v:'S',eq:'dbH',bg:()=>floor(),
+  p:[{fc:LT,hd:[104,34],sh:[102,52],hp:[100,86],el:[90,74],hn:[80,92],kn:[98,112],ft:[100,142]},
+     {fc:LT,hd:[104,34],sh:[102,52],hp:[100,86],el:[90,74],hn:[86,54],kn:[98,112],ft:[100,142]}],
+  ar:[[[64,96],[68,58],-11]]},
 
+/* El pájaro se queda de FRENTE y erguido, a propósito. La apertura de los
+   brazos ocurre justo en el plano frontal: de perfil las mancuernas terminan
+   montadas sobre el torso y no se entiende nada. Y la inclinación del tronco
+   no hay forma de dibujarla de frente — probado: en escorzo el monigote se
+   lee como si tuviera la cabeza hundida entre los hombros. Así que el dibujo
+   enseña hacia dónde va el movimiento y el texto enseña la postura. */
 pajaros:{v:'F',eq:'dbF',bg:()=>floor(),
   p:[{hd:[100,40],sh:[100,56],hp:[100,84],sL:[88,56],sR:[112,56],eL:[84,76],eR:[116,76],hL:[82,98],hR:[118,98],kL:[90,112],kR:[110,112],fL:[90,142],fR:[110,142]},
      {hd:[100,40],sh:[100,56],hp:[100,84],sL:[88,56],sR:[112,56],eL:[66,58],eR:[134,58],hL:[46,62],hR:[154,62],kL:[90,112],kR:[110,112],fL:[90,142],fR:[110,142]}],
@@ -570,7 +592,7 @@ B:[
  {n:'Curl martillo con mancuernas',s:3,r:'12-15',rir:1,rest:'60 s',d:'martillo',
   c:'Agarre neutro, palmas enfrentadas. Baja en 2 segundos.'},
  {n:'Pájaros con mancuernas',s:3,r:'15',rir:1,rest:'45 s',d:'pajaros',
-  c:'Torso inclinado, espalda plana. Abre con los codos, no con las manos. Compensa todo el empuje del día A.'},
+  c:'Ojo con el dibujo: está de frente para que se vea la apertura, pero tú vas INCLINADO. Bisagra desde la cadera hasta que el torso quede casi paralelo al suelo, rodillas algo flexionadas y espalda plana; desde ahí abre con los codos, no con las manos. Compensa todo el empuje del día A.'},
  {n:'CARDIO — remo por intervalos',cardio:1,s:1,r:'10 min',rest:'—',d:'remoMaq',
   c:'1 minuto fuerte / 1 minuto suave, cinco rondas. Cuida la técnica cuando llegue la fatiga: primero empujan las piernas, después tira la espalda.'}
 ],
@@ -582,7 +604,7 @@ C:[
  {n:'Zancadas con mancuernas',s:3,r:'12 x pierna',rir:1,rest:'90 s',d:'zancada',
   c:'Paso largo, rodilla trasera casi al suelo. Torso vertical. Completa una pierna antes de cambiar.'},
  {n:'Hip thrust con barra',s:3,r:'12-15',rir:1,rest:'90 s',d:'hipthrust',
-  c:'Espalda alta apoyada en la banca, barra sobre la cadera (usa una toalla). Aprieta el glúteo un segundo arriba, mentón hacia el pecho.'},
+  c:'Espalda alta apoyada en la banca, barra sobre la cadera (usa una toalla). Aprieta el glúteo un segundo arriba, mentón hacia el pecho. Es donde antes vas a topar los 90 kg: cuando saques las 15 repeticiones con RIR 1, no busques más peso — pásalo a una pierna.'},
  {n:'Elevación de talones con mancuernas',s:3,r:'20',rir:1,rest:'45 s',d:'gemelos',
   c:'Rango completo: baja el talón todo lo que puedas y sube hasta la punta. Pausa arriba.'},
  {n:'Plancha frontal',s:3,r:'45-60 s',rest:'45 s',d:'plancha',
@@ -650,6 +672,7 @@ function saveNow(){
   catch(e){
     if(storageOK){ storageOK=false; toast('Sin guardado automático — usa Exportar'); }
   }
+  refrescarGuardado();   /* que el "Guardando…" alcance a decir "Guardado" */
 }
 function save(){
   clearTimeout(saveT);
@@ -716,7 +739,7 @@ function todaySet(ej,i){
 function vHoy(){
   const list = PLAN[dia];
   let h = `<h2>Sesión de hoy</h2>
-  <p class="lede">Elige el día, abre cada ejercicio para ver la técnica y anota tus series. Se guarda solo a medida que escribes.</p>
+  <p class="lede">Elige el día, abre cada ejercicio para ver la técnica y anota tus series. Se va guardando solo mientras escribes; al terminar, aprieta <b>Guardar sesión</b> abajo y ahí ves qué quedó registrado.</p>
   <div class="days">`;
   DAYS.forEach(d=>{
     h+=`<button class="day" data-day="${d.id}" aria-pressed="${dia===d.id}">
@@ -778,7 +801,12 @@ function vHoy(){
     h+=`</div></article>`;
   });
 
+  h+=`<div class="guardar">
+    <button class="act" id="btnGuardar">Guardar sesión</button>
+    <span class="gstat" id="gStat">${textoGuardado()}</span>
+  </div>`;
   h+=`<div class="note"><b>Progresión.</b> Cuando completes el rango alto de repeticiones en todas las series con RIR 2, sube 2,5 a 5 kg la próxima sesión y vuelve al rango bajo. Cada 6 semanas, una semana de descarga con la mitad de las series.</div>`;
+  h+=`<div class="note"><b>Cuando ya no puedas sumar peso.</b> Tienes 90 kg en total, así que en hip thrust y peso muerto vas a topar mucho antes que en el resto: ahí el peso deja de ser la palanca. Cuando pase, en este orden — <b>1)</b> sube al tope del rango de repeticiones; <b>2)</b> baja en 4 segundos y haz 2 de pausa en el punto difícil; <b>3)</b> alarga el recorrido: peso muerto y rumano parado sobre un disco, con la barra partiendo más abajo; <b>4)</b> pásalo a una pierna, que con el mismo peso vuelve a ser duro. Recién después de eso, más series.</div>`;
   return h;
 }
 
@@ -1072,6 +1100,28 @@ function refrescarAjustes(){
   if(c) c.innerHTML = statsAjustesHTML();
   refrescarCabecera();
 }
+/* Qué hay anotado HOY en el día que está abierto. Cuenta solo lo que tiene
+   repeticiones (o minutos): un peso escrito sin reps todavía no es una serie. */
+function resumenSesion(){
+  const f = hoy();
+  const nombres = new Set(PLAN[dia].map(e=>e.n));
+  const series = S.fuerza.filter(x=>x.f===f && nombres.has(x.ej) && nz(x.reps)>0);
+  const cardio = S.cardio.filter(x=>x.f===f && nombres.has(x.tipo) && nz(x.min)>0);
+  return {series:series.length, ejercicios:new Set(series.map(x=>x.ej)).size,
+          cardio:cardio.reduce((a,x)=>a+nz(x.min),0)};
+}
+function textoGuardado(){
+  const r = resumenSesion();
+  if(!r.series && !r.cardio) return `Día ${dia} · nada anotado todavía`;
+  const partes = [];
+  if(r.series) partes.push(`${r.series} serie${r.series===1?'':'s'} en ${r.ejercicios} ejercicio${r.ejercicios===1?'':'s'}`);
+  if(r.cardio) partes.push(`${r.cardio} min de cardio`);
+  return `${saveT?'Guardando…':'Guardado ✓'} Día ${dia} · ${partes.join(' · ')}`;
+}
+function refrescarGuardado(){
+  const el=document.getElementById('gStat');
+  if(el) el.textContent = textoGuardado();
+}
 
 /* ============================================================
    5. EVENTOS
@@ -1094,6 +1144,14 @@ document.addEventListener('click',e=>{
     if(confirm('¿Borrar todos los registros? No se puede deshacer.')){
       S=Object.assign(JSON.parse(JSON.stringify(DEF)),{cfg:S.cfg}); save(); render(); toast('Registros borrados');
     } return;
+  }
+  if(b.id==='btnGuardar'){
+    saveNow();                       /* sin esperar los 600 ms del guardado automático */
+    const r=resumenSesion();
+    toast(r.series||r.cardio
+      ? `Día ${dia} guardado — ${r.series} serie${r.series===1?'':'s'}`
+      : 'Todavía no hay nada anotado para guardar');
+    return;
   }
   if(b.id==='btnUpd'){ aplicarActualizacion(); return; }
 });
@@ -1134,13 +1192,14 @@ document.addEventListener('input',e=>{
     const total=art.querySelectorAll('table.sets tbody tr').length;
     let done=0; art.querySelectorAll('input[data-fld=reps]').forEach(i=>{if(nz(i.value)>0)done++});
     art.classList.toggle('done',done===total);
+    refrescarGuardado();
     return;
   }
   if(el.dataset.car){
     const tipo=el.dataset.car, fld=el.dataset.fld;
     let row=S.cardio.find(x=>x.f===hoy()&&x.tipo===tipo);
     if(!row){ row={f:hoy(),sem:S.semana,tipo,min:'',int:'',kcal:''}; S.cardio.push(row); }
-    row[fld]=v; row.sem=S.semana; save(); return;
+    row[fld]=v; row.sem=S.semana; save(); refrescarGuardado(); return;
   }
   if(el.dataset.com){
     let row=S.comida.find(x=>x.f===hoy());
