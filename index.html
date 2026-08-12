@@ -128,6 +128,13 @@
   .day small{color:var(--ink-2);font-size:11px}
   .day[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
   .day[aria-pressed="true"] small{color:#8FA79C}
+  /* días ya entrenados esta semana */
+  .day.hecho{background:var(--pine-lt);border-color:var(--pine)}
+  .day.hecho b{color:var(--pine)}
+  .day.hecho[aria-pressed="true"]{background:var(--ink);border-color:var(--ink)}
+  .day.hecho[aria-pressed="true"] b{color:#fff}
+  .aviso-dia{background:var(--pine-lt);border-left:3px solid var(--pine);
+             padding:10px 13px;border-radius:0 8px 8px 0;font-size:13.5px;margin-bottom:12px}
 
   /* ---- exercise ---- */
   .ex{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
@@ -688,8 +695,8 @@ E:[
    ============================================================ */
 const KEY = 'entreno:v1';
 const DEF = {
-  cfg:{alt:190,peso:90,edad:33,sexo:1,act:1.55,def:0.17,prot:2.1,gr:0.85},
-  semana:1,
+  cfg:{alt:190,peso:90,edad:33,sexo:1,act:1.55,def:0.17,prot:2.1,gr:0.85,inicio:''},
+  semana:1,      /* solo respaldo: la semana de verdad sale de la fecha, ver semanaDe() */
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
   cardio:[],   // {f,sem,tipo,min,int,kcal,nota}
   comida:[],   // {f,sem,tipo,kcal,p,c,g,agua,ayuno,adh,txt,nota}
@@ -703,6 +710,18 @@ async function load(){
     const raw = localStorage.getItem(KEY);
     if(raw) S = Object.assign(JSON.parse(JSON.stringify(DEF)), JSON.parse(raw));
   }catch(e){ /* sin datos previos o sin almacenamiento */ }
+  /* el cfg guardado reemplaza entero al de fábrica: hay que reponer las claves
+     nuevas o quedan en undefined */
+  S.cfg = Object.assign(JSON.parse(JSON.stringify(DEF.cfg)), S.cfg||{});
+  if(!fechaMs(S.cfg.inicio)){
+    /* Primera vez con semanas automáticas. El plan empezó el día del registro
+       más antiguo que exista; si no hay ninguno, hoy. No se toca ningún dato:
+       solo se fija la referencia desde la que se cuentan las semanas. */
+    const fechas = [...S.fuerza,...S.cardio,...S.comida,...S.medidas]
+      .map(x=>x.f).filter(f=>!isNaN(fechaMs(f))).sort();
+    S.cfg.inicio = fechas[0] || hoy();
+    saveNow();
+  }
 }
 let saveT=null;
 function saveNow(){
@@ -735,14 +754,52 @@ const hoy = ()=>{
 };
 const nz = v => (v===''||v===null||v===undefined||isNaN(v))?0:+v;
 
+/* ---- la semana sale de la fecha, no de un número que hay que acordarse de subir ----
+   Antes cada registro se estampaba con el número que estuviera puesto en Ajustes.
+   El día que se te olvidaba subirlo, dos semanas de entrenamiento caían en la misma
+   fila del Resumen (volumen duplicado, la Lectura comparando contra la semana
+   equivocada) y las medidas del lunes siguiente sobreescribían las del anterior,
+   porque solo cabe una fila por semana. Ahora la semana se calcula desde la fecha
+   de cada registro y el número guardado ya no se lee. */
+const fechaMs = f => { const p=String(f||'').split('-');
+  return p.length===3 ? new Date(+p[0],+p[1]-1,+p[2]).getTime() : NaN; };  /* local, nunca UTC */
+function lunesDe(ms){
+  const d=new Date(ms); const dow=(d.getDay()+6)%7;   /* 0 = lunes */
+  d.setDate(d.getDate()-dow); d.setHours(0,0,0,0); return d.getTime();
+}
+/* La semana del plan corre de lunes a domingo: si empezaste un miércoles, esa
+   semana sigue siendo la 1 y la 2 parte el lunes siguiente. */
+function semanaDe(f){
+  const a=fechaMs(S.cfg.inicio), b=fechaMs(f);
+  if(isNaN(a)||isNaN(b)) return nz(S.semana)||1;
+  return Math.max(1, Math.round((lunesDe(b)-lunesDe(a))/604800000)+1);
+}
+const semanaHoy = () => semanaDe(hoy());
+
+/* ---- un solo peso ----
+   El de Ajustes movía los objetivos de calorías y proteína; el de Medidas era el
+   semanal. Anotar el peso donde corresponde no recalculaba nada y terminabas
+   comiendo para un peso viejo. Manda la última medición; el de Ajustes queda
+   como punto de partida mientras no hayas medido. */
+function pesoActual(){
+  const con = S.medidas.filter(x=>nz(x.peso)>0 && fechaMs(x.f));
+  if(!con.length) return nz(S.cfg.peso);
+  return nz(con.slice().sort((a,b)=>fechaMs(a.f)-fechaMs(b.f)).pop().peso);
+}
+function pesoMedido(){
+  const con = S.medidas.filter(x=>nz(x.peso)>0 && fechaMs(x.f));
+  if(!con.length) return null;
+  return con.slice().sort((a,b)=>fechaMs(a.f)-fechaMs(b.f)).pop();
+}
+
 /* ---- objetivos calculados ---- */
 function targets(){
-  const c=S.cfg;
-  const tmb = 10*c.peso + 6.25*c.alt - 5*c.edad + (c.sexo==1?5:-161);
+  const c=S.cfg, peso=pesoActual();
+  const tmb = 10*peso + 6.25*c.alt - 5*c.edad + (c.sexo==1?5:-161);
   const tdee = tmb*c.act;
   const kcal = Math.round(tdee*(1-c.def));
-  const p = Math.round(c.peso*c.prot);
-  const g = Math.round(c.peso*c.gr);
+  const p = Math.round(peso*c.prot);
+  const g = Math.round(peso*c.gr);
   const ch = Math.round((kcal - p*4 - g*9)/4);
   return {tmb:Math.round(tmb),tdee:Math.round(tdee),kcal,p,g,ch,
           alto:Math.round(kcal*1.12), bajo:Math.round(kcal*0.85),
@@ -861,13 +918,41 @@ let tab='hoy', dia='A';
 function render(){
   const t=targets();
   document.getElementById('hdrTargets').textContent =
-    `${t.kcal} kcal · ${t.p} g proteína · semana ${S.semana}`;
+    `${t.kcal} kcal · ${t.p} g proteína · semana ${semanaHoy()}`;
   document.getElementById('nav').innerHTML = TABS.map(([k,l])=>
     `<button role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}</button>`).join('');
   document.getElementById('main').innerHTML = ({hoy:vHoy,comida:vComida,medidas:vMedidas,resumen:vResumen,ajustes:vAjustes})[tab]();
 }
 
 /* ---------- ENTRENAR ---------- */
+/* Qué día toca. La app abría siempre en el A y había que elegir a mano, sin
+   memoria de cuándo entrenaste ni de qué hiciste. */
+function ultimaSesion(){
+  const con = S.fuerza.filter(x=>nz(x.reps)>0 && x.dia);
+  if(!con.length) return null;
+  const f = con.map(x=>x.f).sort().pop();
+  return {f, dia: con.filter(x=>x.f===f)[0].dia};
+}
+function diaSugerido(){
+  const u = ultimaSesion();
+  if(!u) return 'A';
+  if(u.f===hoy()) return u.dia;          /* si hoy ya empezaste, quédate en ese */
+  const i = DAYS.findIndex(d=>d.id===u.dia);
+  return i<0 ? 'A' : DAYS[(i+1)%DAYS.length].id;
+}
+function diasHechosSemana(){
+  const sem = semanaHoy();
+  return new Set(S.fuerza.filter(x=>nz(x.reps)>0 && semanaDe(x.f)===sem).map(x=>x.dia));
+}
+function avisoDelDia(){
+  const u = ultimaSesion();
+  if(!u) return `Primera sesión. Parte por el <b>día A</b> y la app va aprendiendo tu ritmo.`;
+  if(u.f===hoy()) return `Hoy estás en el <b>día ${u.dia}</b>, ya anotado.`;
+  const dias = Math.round((fechaMs(hoy())-fechaMs(u.f))/86400000);
+  const cuando = dias===1 ? 'ayer' : dias<=0 ? 'recién' : `hace ${dias} días`;
+  const descanso = dias>=5 ? ` Llevas ${dias} días sin entrenar: baja un poco la carga en el primer ejercicio.` : '';
+  return `Última sesión ${cuando} (${fechaCorta(u.f)}), día ${u.dia}. Hoy te toca el <b>día ${diaSugerido()}</b>.${descanso}`;
+}
 function todaySet(ej,i){
   return S.fuerza.find(x=>x.f===hoy() && x.ej===ej && x.serie===i) || {};
 }
@@ -875,10 +960,13 @@ function vHoy(){
   const list = PLAN[dia];
   let h = `<h2>Sesión de hoy</h2>
   <p class="lede">Elige el día, abre cada ejercicio para ver la técnica y anota tus series. Se va guardando solo mientras escribes; al terminar, aprieta <b>Guardar sesión</b> abajo y ahí ves qué quedó registrado.</p>
+  <div class="aviso-dia">${avisoDelDia()}</div>
   <div class="days">`;
+  const hechos = diasHechosSemana();
   DAYS.forEach(d=>{
-    h+=`<button class="day" data-day="${d.id}" aria-pressed="${dia===d.id}">
-      <b>Día ${d.id} · ${d.name}</b><small>${d.sub}</small></button>`;
+    const ok = hechos.has(d.id);
+    h+=`<button class="day${ok?' hecho':''}" data-day="${d.id}" aria-pressed="${dia===d.id}">
+      <b>Día ${d.id} · ${d.name}${ok?' ✓':''}</b><small>${d.sub}</small></button>`;
   });
   h+=`</div>`;
 
@@ -1027,15 +1115,22 @@ function vComida(){
 }
 
 /* ---------- MEDIDAS ---------- */
+/* La fila que la pestaña está mostrando. Se guarda la referencia al objeto y no
+   la semana, porque si cambias la fecha del registro la semana cambia con ella
+   y la siguiente tecla crearía una fila nueva en vez de seguir editando esta. */
+let filaMedidas = null;
 function vMedidas(){
-  const m = S.medidas.find(x=>x.sem===S.semana) || {};
-  const prev = S.medidas.find(x=>x.sem===S.semana-1);
+  const sem = semanaHoy();
+  const hallada = S.medidas.find(x=>semanaDe(x.f)===sem);
+  filaMedidas = hallada || null;
+  const m = hallada || {};
+  const prev = S.medidas.find(x=>semanaDe(x.f)===sem-1);
   const dP = (prev&&m.peso&&prev.peso)?(m.peso-prev.peso).toFixed(2):'—';
   const dC = (prev&&m.cint&&prev.cint)?(m.cint-prev.cint).toFixed(1):'—';
   let h=`<h2>Peso y medidas</h2>
   <p class="lede">Todos los lunes, en ayunas y después del baño. En recomposición la balanza se estanca mientras el cuerpo cambia — la cinta métrica es la que manda.</p>
   <div class="card">
-    <div class="eyebrow">Semana ${S.semana}</div>
+    <div class="eyebrow">Semana ${sem}</div>
     <div class="grid g2" style="margin:10px 0 12px">
       <div><label>Fecha</label><input type="date" data-med="f" value="${m.f||hoy()}"></div>
       <div><label>Peso kg</label><input type="number" inputmode="decimal" step="0.1" data-med="peso" value="${m.peso??''}"></div>
@@ -1058,8 +1153,8 @@ function vMedidas(){
   if(S.medidas.length){
     h+=`<h2>Historial</h2><div class="scroll"><table class="tbl"><thead><tr>
       <th>Sem</th><th>Fecha</th><th>Peso</th><th>Cintura</th><th>Pecho</th><th>Brazo</th></tr></thead><tbody>`;
-    S.medidas.slice().sort((a,b)=>a.sem-b.sem).forEach(x=>{
-      h+=`<tr><td>${x.sem}</td><td>${x.f||''}</td><td>${x.peso??''}</td><td>${x.cint??''}</td><td>${x.pecho??''}</td><td>${x.brazo??''}</td></tr>`;
+    S.medidas.slice().sort((a,b)=>fechaMs(a.f)-fechaMs(b.f)).forEach(x=>{
+      h+=`<tr><td>${semanaDe(x.f)}</td><td>${x.f||''}</td><td>${coma(x.peso??'')}</td><td>${coma(x.cint??'')}</td><td>${coma(x.pecho??'')}</td><td>${coma(x.brazo??'')}</td></tr>`;
     });
     h+=`</tbody></table></div>`;
   }
@@ -1068,22 +1163,22 @@ function vMedidas(){
 
 /* ---------- RESUMEN ---------- */
 function weekAgg(w){
-  const f=S.fuerza.filter(x=>x.sem===w);
+  const f=S.fuerza.filter(x=>semanaDe(x.f)===w);
   const vol=f.reduce((a,x)=>a+nz(x.kg)*nz(x.reps),0);
   const ses=new Set(f.filter(x=>nz(x.reps)>0).map(x=>x.f)).size;
-  const c=S.cardio.filter(x=>x.sem===w);
+  const c=S.cardio.filter(x=>semanaDe(x.f)===w);
   const min=c.reduce((a,x)=>a+nz(x.min),0);
-  const co=S.comida.filter(x=>x.sem===w && nz(x.kcal)>0);
+  const co=S.comida.filter(x=>semanaDe(x.f)===w && nz(x.kcal)>0);
   const avg=(k)=>co.length?Math.round(co.reduce((a,x)=>a+nz(x[k]),0)/co.length):null;
-  const m=S.medidas.find(x=>x.sem===w);
+  const m=S.medidas.find(x=>semanaDe(x.f)===w);
   return {w,ses,vol:Math.round(vol),min,dias:co.length,
           kcal:avg('kcal'),p:avg('p'),c:avg('c'),g:avg('g'),
           adh:co.length?(co.reduce((a,x)=>a+nz(x.adh),0)/co.length).toFixed(1):null,
           peso:m?m.peso:null, cint:m?m.cint:null};
 }
 function vResumen(){
-  const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida].map(x=>x.sem)
-    .concat(S.medidas.map(x=>x.sem)).concat([S.semana]))].filter(x=>x).sort((a,b)=>a-b);
+  const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida,...S.medidas]
+    .map(x=>semanaDe(x.f)).concat([semanaHoy()]))].filter(x=>x).sort((a,b)=>a-b);
   const rows=weeks.map(weekAgg);
   let h=`<h2>Resumen semanal</h2>
   <p class="lede">Se arma solo con lo que vas cargando. Exporta al final de cada semana y pásame el texto para ajustar el plan.</p>
@@ -1145,9 +1240,9 @@ function vResumen(){
 }
 function expText(){
   const t=targets();
-  const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida].map(x=>x.sem))].sort((a,b)=>a-b);
+  const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida].map(x=>semanaDe(x.f)))].sort((a,b)=>a-b);
   let o=`RESUMEN DE ENTRENAMIENTO\n`;
-  o+=`Perfil: ${S.cfg.alt} cm · ${S.cfg.peso} kg · ${S.cfg.edad} años\n`;
+  o+=`Perfil: ${S.cfg.alt} cm · ${pesoActual()} kg · ${S.cfg.edad} años\n`;
   o+=`Objetivos: ${t.kcal} kcal / ${t.p} g prot / ${t.ch} g carb / ${t.g} g grasa\n\n`;
   weeks.forEach(w=>{
     const r=weekAgg(w);
@@ -1155,9 +1250,9 @@ function expText(){
     o+=`Sesiones: ${r.ses} · Volumen: ${r.vol} kg · Cardio: ${r.min} min\n`;
     o+=`Nutrición (${r.dias} días): ${r.kcal??'-'} kcal · ${r.p??'-'} g prot · ${r.c??'-'} g carb · ${r.g??'-'} g grasa · adherencia ${r.adh??'-'}\n`;
     o+=`Peso: ${r.peso??'-'} kg · Cintura: ${r.cint??'-'} cm\n`;
-    const ejs=[...new Set(S.fuerza.filter(x=>x.sem===w&&nz(x.reps)>0).map(x=>x.ej))];
+    const ejs=[...new Set(S.fuerza.filter(x=>semanaDe(x.f)===w&&nz(x.reps)>0).map(x=>x.ej))];
     ejs.forEach(e=>{
-      const st=S.fuerza.filter(x=>x.sem===w&&x.ej===e&&nz(x.reps)>0);
+      const st=S.fuerza.filter(x=>semanaDe(x.f)===w&&x.ej===e&&nz(x.reps)>0);
       o+=`  ${e}: ${st.map(x=>`${x.kg||0}×${x.reps}${x.rir!==''&&x.rir!==undefined?'@'+x.rir:''}`).join(', ')}\n`;
     });
     o+=`\n`;
@@ -1166,6 +1261,13 @@ function expText(){
 }
 
 /* ---------- AJUSTES ---------- */
+function pesoUsadoTxt(){
+  const m = pesoMedido();
+  return m
+    ? `Calorías y proteína calculadas con <b>${coma(m.peso)} kg</b>, tu última medición (${fechaCorta(m.f)}). El peso de acá abajo solo se usa mientras no hayas medido.`
+    : `Calorías y proteína calculadas con los <b>${coma(S.cfg.peso)} kg</b> de acá abajo. En cuanto anotes tu peso en <b>Medidas</b>, manda ese.`;
+}
+const pesoSemanaTxt = () => `${pesoUsadoTxt()} · Vas en la <b>semana ${semanaHoy()}</b>, contada desde el primer día del plan: ya no hay que subirla a mano.`;
 function statsAjustesHTML(){
   const t=targets();
   return `<div class="stat"><b>${t.tmb}</b><small>metabolismo basal</small></div>
@@ -1197,8 +1299,9 @@ function vAjustes(){
         <option value="0.25" ${c.def==0.25?'selected':''}>25 % agresivo</option></select></div>
       <div><label>Proteína g/kg</label><input type="number" step="0.1" data-cfg="prot" value="${c.prot}"></div>
       <div><label>Grasa g/kg</label><input type="number" step="0.05" data-cfg="gr" value="${c.gr}"></div>
-      <div><label>Semana actual</label><input type="number" data-sem="1" value="${S.semana}"></div>
+      <div><label>Primer día del plan</label><input type="date" data-inicio="1" value="${c.inicio||''}"></div>
     </div>
+    <p class="lede" style="margin:12px 0 0" id="pesoSemana">${pesoSemanaTxt()}</p>
   </div>
   <div class="card grid g3" id="statsAjustes">${statsAjustesHTML()}</div>
   <div class="note">Entre 0,4 y 0,8 kg por semana es la zona correcta. Más rápido que eso y una parte de lo que pierdes es músculo, justo lo que estamos tratando de construir.</div>
@@ -1221,7 +1324,7 @@ function vAjustes(){
 function refrescarCabecera(){
   const t=targets();
   document.getElementById('hdrTargets').textContent =
-    `${t.kcal} kcal · ${t.p} g proteína · semana ${S.semana}`;
+    `${t.kcal} kcal · ${t.p} g proteína · semana ${semanaHoy()}`;
 }
 function refrescarComida(){
   const lk=document.getElementById('lblKcal'); if(!lk) return;
@@ -1239,6 +1342,8 @@ function refrescarComida(){
 function refrescarAjustes(){
   const c=document.getElementById('statsAjustes');
   if(c) c.innerHTML = statsAjustesHTML();
+  const p=document.getElementById('pesoSemana');
+  if(p) p.innerHTML = pesoSemanaTxt();
   refrescarCabecera();
 }
 /* Qué hay anotado HOY en el día que está abierto. Cuenta solo lo que tiene
@@ -1334,6 +1439,12 @@ function importar(){
   listas.forEach(k=>{ if(!Array.isArray(S[k])) S[k]=[]; });
   S.cfg = Object.assign(JSON.parse(JSON.stringify(DEF.cfg)), d.cfg||{});
   S.semana = +d.semana || 1;
+  if(isNaN(fechaMs(S.cfg.inicio))){
+    /* respaldo viejo, sin fecha de inicio: se toma el registro más antiguo */
+    const fechas = [...S.fuerza,...S.cardio,...S.comida,...S.medidas]
+      .map(x=>x.f).filter(f=>!isNaN(fechaMs(f))).sort();
+    S.cfg.inicio = fechas[0] || hoy();
+  }
   saveNow(); render(); toast(`Restaurados ${n} registros`);
 }
 
@@ -1342,8 +1453,8 @@ document.addEventListener('input',e=>{
   if(el.dataset.ej){
     const {ej,s,fld}=el.dataset;
     let row=S.fuerza.find(x=>x.f===hoy()&&x.ej===ej&&x.serie===+s);
-    if(!row){ row={f:hoy(),sem:S.semana,dia,ej,serie:+s,kg:'',reps:'',rir:''}; S.fuerza.push(row); }
-    row[fld]=v; row.sem=S.semana; save();
+    if(!row){ row={f:hoy(),sem:semanaHoy(),dia,ej,serie:+s,kg:'',reps:'',rir:''}; S.fuerza.push(row); }
+    row[fld]=v; row.sem=semanaHoy(); save();
     const art=el.closest('.ex');
     const total=art.querySelectorAll('table.sets tbody tr').length;
     let done=0; art.querySelectorAll('input[data-fld=reps]').forEach(i=>{if(nz(i.value)>0)done++});
@@ -1354,30 +1465,33 @@ document.addEventListener('input',e=>{
   if(el.dataset.car){
     const tipo=el.dataset.car, fld=el.dataset.fld;
     let row=S.cardio.find(x=>x.f===hoy()&&x.tipo===tipo);
-    if(!row){ row={f:hoy(),sem:S.semana,tipo,min:'',int:'',kcal:''}; S.cardio.push(row); }
-    row[fld]=v; row.sem=S.semana; save(); refrescarGuardado(); return;
+    if(!row){ row={f:hoy(),sem:semanaHoy(),tipo,min:'',int:'',kcal:''}; S.cardio.push(row); }
+    row[fld]=v; row.sem=semanaHoy(); save(); refrescarGuardado(); return;
   }
   if(el.dataset.com){
     let row=S.comida.find(x=>x.f===hoy());
-    if(!row){ row={f:hoy(),sem:S.semana}; S.comida.push(row); }
-    row[el.dataset.com]=v; row.sem=S.semana; save();
+    if(!row){ row={f:hoy(),sem:semanaHoy()}; S.comida.push(row); }
+    row[el.dataset.com]=v; row.sem=semanaHoy(); save();
     if(['kcal','p','tipo'].includes(el.dataset.com)) refrescarComida();
     return;
   }
   if(el.dataset.med){
-    let row=S.medidas.find(x=>x.sem===S.semana);
-    if(!row){ row={sem:S.semana,f:hoy()}; S.medidas.push(row); }
+    let row=filaMedidas;
+    if(!row){ row={sem:semanaHoy(),f:hoy()}; S.medidas.push(row); filaMedidas=row; }
     const k=el.dataset.med;
     row[k]= k==='f'? v : (v===''?'':+v);
-    save(); return;
+    row.sem = semanaDe(row.f);
+    save();
+    if(k==='peso') refrescarCabecera();   /* el peso mueve kcal y proteína */
+    return;
   }
   if(el.dataset.cfg){
     if(v==='') return;              /* campo a medio borrar: no se guarda un 0 */
     S.cfg[el.dataset.cfg]=+v; save(); refrescarAjustes(); return;
   }
-  if(el.dataset.sem){
-    if(v==='') return;
-    S.semana=+v||1; save(); refrescarCabecera(); return;
+  if(el.dataset.inicio){
+    if(isNaN(fechaMs(v))) return;      /* fecha a medio escribir: no se guarda */
+    S.cfg.inicio = v; save(); refrescarAjustes(); return;
   }
 });
 
@@ -1434,5 +1548,5 @@ async function registrarSW(){
   }catch(e){ /* sin service worker la app funciona igual, solo que sin modo sin conexión */ }
 }
 
-(async function init(){ await load(); render(); registrarSW(); })();
+(async function init(){ await load(); dia = diaSugerido(); render(); registrarSW(); })();
 </script>
