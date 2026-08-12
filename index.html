@@ -253,6 +253,16 @@
   .hist table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11.5px}
   .hist td{padding:3px 0;vertical-align:top;color:var(--ink-2)}
   .hist td:first-child{width:64px;color:var(--slate);white-space:nowrap}
+  /* ---- gráficos ---- */
+  /* el SVG escala también sus textos: sin tope, en pantalla ancha el gráfico
+     se ve gigante y las etiquetas enormes */
+  .graf{margin:4px 0 14px;max-width:430px}
+  .graf svg{width:100%;height:auto;display:block}
+  .graf-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+          font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--slate)}
+  .graf-d{font-weight:600;font-size:13px;color:var(--ink-2)}
+  .graf-d.bien{color:var(--pine)}
+  .graf-d.mal{color:var(--rust)}
   hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -897,13 +907,65 @@ function sugerencia(e){
       ? (conMancuerna ? 'sube al siguiente escalón de mancuerna' : `sube a ${coma(kg+2.5)} kg`)
       : `repite ${coma(kg)} kg`};
 }
+/* ============================================================
+   3d. GRÁFICOS
+   ------------------------------------------------------------
+   SVG generado a mano, sin ninguna librería: la app tiene que abrir
+   igual sin señal. Un dato por gráfico y con su propia escala —
+   meter dos métricas distintas en un mismo lienzo con dos ejes se
+   lee mal y termina engañando.
+   ============================================================ */
+function grafico(puntos, opt){
+  opt = opt||{};
+  const P = (puntos||[]).filter(p=>!isNaN(fechaMs(p.f)) && nz(p.v)>0)
+                        .sort((a,b)=>fechaMs(a.f)-fechaMs(b.f));
+  if(P.length<2) return `<div class="graf"><div class="graf-t"><span>${opt.titulo||''}</span></div>
+    <p class="prev">${opt.vacio||'Con dos registros o más aparece la curva.'}</p></div>`;
+  const W=300, H=94, mL=6, mR=6, mT=12, mB=18;
+  const xs=P.map(p=>fechaMs(p.f)), ys=P.map(p=>nz(p.v));
+  const x0=Math.min(...xs), x1=Math.max(...xs);
+  let y0=Math.min(...ys), y1=Math.max(...ys);
+  if(y1===y0){ y0-=1; y1+=1; }                 /* todo igual: no dividir por cero */
+  const m=(y1-y0)*0.15; y0-=m; y1+=m;
+  const px=v=> mL + (x1===x0?0.5:(v-x0)/(x1-x0))*(W-mL-mR);
+  const py=v=> mT + (1-(v-y0)/(y1-y0))*(H-mT-mB);
+  const pts=P.map(p=>[px(fechaMs(p.f)), py(nz(p.v))]);
+  const primero=ys[0], ultimo=ys[ys.length-1];
+  const dif=+(ultimo-primero).toFixed(1);
+  const bien = dif===0 ? null : (opt.bajarEsBueno ? dif<0 : dif>0);
+  return `<div class="graf">
+    <div class="graf-t"><span>${opt.titulo||''}</span>
+      <span class="graf-d ${bien===null?'':(bien?'bien':'mal')}">${dif>0?'+':''}${coma(dif)} ${opt.unidad||''}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.titulo||'evolución'}: de ${coma(primero)} a ${coma(ultimo)}">
+      <line x1="${mL}" y1="${py(primero).toFixed(1)}" x2="${W-mR}" y2="${py(primero).toFixed(1)}"
+            stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
+      <polyline points="${pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}"
+                fill="none" stroke="var(--pine)" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+      ${pts.map((p,i)=>{const u=i===pts.length-1;
+        return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${u?4:2.6}"
+          fill="${u?'var(--pine)':'#fff'}" stroke="var(--pine)" stroke-width="2"/>`;}).join('')}
+      <text x="${mL}" y="${H-4}" font-size="10" font-family="monospace" fill="var(--slate)">${fechaCorta(P[0].f)} · ${coma(primero)}</text>
+      <text x="${W-mR}" y="${H-4}" font-size="10" font-family="monospace" fill="var(--slate)" text-anchor="end">${fechaCorta(P[P.length-1].f)} · ${coma(ultimo)}</text>
+    </svg>
+  </div>`;
+}
+
 function historialHTML(ej){
   const rows = S.fuerza.filter(x=>x.ej===ej && (nz(x.kg)>0||nz(x.reps)>0));
   if(!rows.length) return `<p class="prev">Todavía no hay sesiones registradas de este ejercicio.</p>`;
   const porFecha = {};
   rows.forEach(x=>{ (porFecha[x.f]=porFecha[x.f]||[]).push(x); });
-  const fechas = Object.keys(porFecha).sort().reverse().slice(0,8);
-  return `<table>${fechas.map(f=>{
+  const todas = Object.keys(porFecha).sort();
+  /* La curva es el peso máximo de cada sesión. En los de peso corporal no hay
+     kilos que graficar, así que ahí no se dibuja nada. */
+  const curva = todas.map(f=>({f, v:Math.max(...porFecha[f].map(x=>nz(x.kg)))}));
+  const graf = curva.some(p=>p.v>0)
+    ? grafico(curva, {titulo:'Peso máximo por sesión', unidad:'kg',
+        vacio:'Con dos sesiones aparece la curva de carga.'})
+    : '';
+  const fechas = todas.slice().reverse().slice(0,8);
+  return graf + `<table>${fechas.map(f=>{
     const s = porFecha[f].slice().sort((a,b)=>a.serie-b.serie);
     return `<tr><td>${fechaCorta(f)}</td><td>${s.map(x=>`${coma(x.kg||0)}×${x.reps||0}`).join('  ·  ')}</td></tr>`;
   }).join('')}</table>${fechas.length===8?`<p class="prev">Se muestran las últimas 8 sesiones.</p>`:''}`;
@@ -1149,6 +1211,15 @@ function vMedidas(){
     </div>
   </div>
   <div class="note"><b>Cómo medir siempre igual.</b> Cintura al nivel del ombligo, cinta sin apretar, exhalando normal. Brazo a mitad entre hombro y codo, colgando. Muslo 15 cm sobre la rodilla — marca el punto con lápiz para repetirlo. Y saca fotos de frente, perfil y espalda cada 4 semanas: a los dos meses te dirán más que cualquier número.</div>`;
+
+  h+=`<h2>Cómo vas</h2><div class="card">
+    ${grafico(S.medidas.map(x=>({f:x.f,v:x.peso})),
+        {titulo:'Peso', unidad:'kg', bajarEsBueno:true,
+         vacio:'Con dos pesajes aparece la curva. En recomposición es la línea, no el número del día.'})}
+    ${grafico(S.medidas.map(x=>({f:x.f,v:x.cint})),
+        {titulo:'Cintura (ombligo)', unidad:'cm', bajarEsBueno:true,
+         vacio:'Con dos mediciones de cintura aparece la curva.'})}
+  </div>`;
 
   if(S.medidas.length){
     h+=`<h2>Historial</h2><div class="scroll"><table class="tbl"><thead><tr>

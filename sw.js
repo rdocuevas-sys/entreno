@@ -5,7 +5,7 @@
    Es lo único que hace que el teléfono se entere de que hay
    una versión nueva y muestre el aviso "Actualizar".
    ============================================================ */
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE = `entreno-${VERSION}`;
 
 const ASSETS = [
