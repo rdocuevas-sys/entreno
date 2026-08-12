@@ -390,9 +390,14 @@ militarDB:{v:'F',eq:'dbF',bg:()=>floor(),
      {hd:[100,32],sh:[100,48],hp:[100,86],sL:[86,48],sR:[114,48],eL:[78,32],eR:[122,32],hL:[82,16],hR:[118,16],kL:[90,112],kR:[110,112],fL:[90,142],fR:[110,142]}],
   ar:[[[58,50],[62,20]],[[142,50],[138,20]]]},
 
-aperturas:{v:'F',eq:'dbF',bg:()=>box(88,26,24,112,'#fff'),
-  p:[{hd:[100,34],sh:[100,50],hp:[100,96],sL:[88,50],sR:[112,50],eL:[62,52],eR:[138,52],hL:[42,50],hR:[158,50],kL:[92,118],kR:[108,118],fL:[92,140],fR:[108,140]},
-     {hd:[100,34],sh:[100,50],hp:[100,96],sL:[88,50],sR:[112,50],eL:[80,40],eR:[120,40],hL:[86,28],hR:[114,28],kL:[92,118],kR:[108,118],fL:[92,140],fR:[108,140]}],
+/* Aperturas está visto DESDE ARRIBA: estás acostado y la franja blanca es la
+   banca. Con las piernas rectas y juntas se leía igual que las elevaciones
+   laterales del mismo día — dos ejercicios distintos con el mismo monigote.
+   Ahora la banca termina a media pierna y las rodillas salen abiertas con el
+   pie apoyado en el suelo: desde arriba eso solo puede ser alguien acostado. */
+aperturas:{v:'F',eq:'dbF',bg:()=>box(88,26,24,88,'#fff'),
+  p:[{hd:[100,34],sh:[100,50],hp:[100,96],sL:[88,50],sR:[112,50],eL:[62,52],eR:[138,52],hL:[42,50],hR:[158,50],kL:[84,114],kR:[116,114],fL:[78,128],fR:[122,128]},
+     {hd:[100,34],sh:[100,50],hp:[100,96],sL:[88,50],sR:[112,50],eL:[80,40],eR:[120,40],hL:[86,28],hR:[114,28],kL:[84,114],kR:[116,114],fL:[78,128],fR:[122,128]}],
   ar:[[[36,38],[78,20],10],[[164,38],[122,20],-10]]},
 
 laterales:{v:'F',eq:'dbF',bg:()=>floor(),
@@ -600,7 +605,7 @@ A:[
  {n:'Flexiones con los pies en la banca',s:3,r:'12-15',rir:1,rest:'90 s',d:'flexPies',
   c:'Va en lugar del press inclinado, porque tu banca es plana. Con los pies arriba el esfuerzo se corre a la parte alta del pecho, que es justo lo que la banca plana no alcanza. Cuerpo en línea recta de talón a cabeza, sin hundir la cadera. Baja en 3 segundos hasta rozar el suelo con el pecho. Cuando 15 te queden fáciles, sube los pies más alto.'},
  {n:'Aperturas con mancuernas',s:3,r:'15',rir:1,rest:'60 s',d:'aperturas',
-  c:'Codos ligeramente flexionados y fijos durante todo el recorrido. Abre hasta sentir el estiramiento del pecho, sin forzar el hombro.'},
+  c:'Vas acostado boca arriba en la banca, con los pies en el suelo: el dibujo está visto DESDE ARRIBA, por eso se parece a las elevaciones laterales. Codos ligeramente flexionados y fijos durante todo el recorrido. Abre hasta sentir el estiramiento del pecho, sin forzar el hombro.'},
  {n:'Elevaciones laterales',s:3,r:'15-20',rir:1,rest:'45 s',d:'laterales',
   c:'Sube hasta la línea del hombro y no más. Sin impulso de cadera. Si necesitas balancearte, baja el peso.'},
  {n:'Press francés con barra de tríceps',s:3,r:'12',rir:1,rest:'60 s',d:'frances',
