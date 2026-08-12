@@ -218,6 +218,34 @@
   .upd button{background:#fff;color:var(--pine);border:0;border-radius:8px;
               padding:9px 14px;font:600 13px 'Inter',sans-serif;cursor:pointer}
   @media(min-width:700px){.upd{left:auto;right:18px;width:380px}}
+  /* ---- cronómetro de descanso ---- */
+  /* El aviso de versión nueva vive en la misma esquina: si los dos aparecen
+     juntos, el aviso sube y el cronómetro se queda abajo, a mano del pulgar. */
+  .upd.subido{bottom:96px}
+  .crono{position:fixed;left:12px;right:12px;bottom:14px;z-index:98;
+         background:var(--ink);color:#fff;border-radius:var(--r);
+         padding:10px 14px;display:flex;align-items:center;gap:10px;
+         box-shadow:0 6px 22px rgba(20,32,28,.28);
+         transform:translateY(120px);opacity:0;transition:.28s;pointer-events:none}
+  .crono.on{transform:translateY(0);opacity:1;pointer-events:auto}
+  .crono-t{font-family:'IBM Plex Mono',monospace;font-size:26px;font-variant-numeric:tabular-nums;
+           letter-spacing:.02em;min-width:74px}
+  .crono-e{flex:1;font-size:12px;line-height:1.35;opacity:.75}
+  .crono button{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:8px;
+                padding:8px 11px;font:600 12.5px 'Inter',sans-serif;cursor:pointer}
+  .crono button:active{transform:translateY(1px)}
+  /* al llegar a cero deja de ser un cronómetro y pasa a ser un aviso */
+  .crono.listo{background:var(--rust)}
+  .crono.listo .crono-e{opacity:.95}
+  @media(min-width:700px){.crono{left:auto;right:18px;width:380px}}
+  /* ---- descanso, sugerencia e historial dentro del ejercicio ---- */
+  .fila-ex{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .sug{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--pine);
+       background:var(--pine-lt);border-radius:6px;padding:5px 9px;line-height:1.5}
+  .hist{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+  .hist table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+  .hist td{padding:3px 0;vertical-align:top;color:var(--ink-2)}
+  .hist td:first-child{width:64px;color:var(--slate);white-space:nowrap}
   hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -237,6 +265,12 @@
 <div class="upd" id="upd" role="status">
   <p><b>Hay una versión nueva.</b> Tus registros no se tocan.</p>
   <button id="btnUpd">Actualizar</button>
+</div>
+<div class="crono" id="crono" role="timer" aria-live="off">
+  <span class="crono-t" id="cronoT">0:00</span>
+  <span class="crono-e" id="cronoE"></span>
+  <button id="btnCrono30">+30 s</button>
+  <button id="btnCronoX">Listo</button>
 </div>
 
 <script>
@@ -601,8 +635,8 @@ C:[
   c:'Va en lugar de la sentadilla con barra, que necesita un soporte para cargártela al hombro. Pie de atrás sobre la banca, mancuernas colgando a los lados. El peso lo lleva la pierna de adelante; la de atrás solo equilibra. Baja hasta que la rodilla trasera quede a un palmo del suelo, torso vertical. Si al principio te vas de lado, afírmate con una mano en la pared.'},
  {n:'Peso muerto convencional',s:3,r:'6-8',rir:2,rest:'3 min',d:'pesoMuerto',
   c:'El más exigente de la semana. Barra pegada a la tibia, pecho arriba, empuja el suelo. Técnica antes que peso, siempre.'},
- {n:'Zancadas con mancuernas',s:3,r:'12 x pierna',rir:1,rest:'90 s',d:'zancada',
-  c:'Paso largo, rodilla trasera casi al suelo. Torso vertical. Completa una pierna antes de cambiar.'},
+ {n:'Sentadilla goblet con mancuerna',s:3,r:'15-20',rir:1,rest:'90 s',d:'goblet',
+  c:'Va en lugar de las zancadas: la búlgara ya hace el trabajo a una pierna y hacer los dos seguidos era repetir el mismo patrón con el doble de fatiga. Mancuerna al pecho, profundidad completa, torso vertical. Con 15 kg de tope acá no vas a cargar mucho, y no importa: la carga la pone la búlgara. Lo que buscas es recorrido completo y control — baja en 3 segundos y haz 1 de pausa abajo. Cuando 20 repeticiones te salgan fáciles, sube la pausa a 3 segundos antes de pensar en más peso.'},
  {n:'Hip thrust con barra',s:3,r:'12-15',rir:1,rest:'90 s',d:'hipthrust',
   c:'Espalda alta apoyada en la banca, barra sobre la cadera (usa una toalla). Aprieta el glúteo un segundo arriba, mentón hacia el pecho. Es donde antes vas a topar los 90 kg: cuando saques las 15 repeticiones con RIR 1, no busques más peso — pásalo a una pierna.'},
  {n:'Elevación de talones con mancuernas',s:3,r:'20',rir:1,rest:'45 s',d:'gemelos',
@@ -710,6 +744,109 @@ function targets(){
           perdida:((tdee-kcal)*7/7700).toFixed(2)};
 }
 
+const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const fechaCorta = f => { const p=String(f).split('-'); return `${+p[2]}-${MESES[+p[1]-1]}`; };
+const coma = n => String(n).replace('.',',');
+
+/* ============================================================
+   3b. CRONÓMETRO DE DESCANSO
+   ------------------------------------------------------------
+   Cuenta contra una hora de término, no restando de a un segundo:
+   el navegador frena los temporizadores cuando la app queda en
+   segundo plano, y un contador que resta se atrasaría justo
+   mientras descansas con el teléfono guardado.
+   ============================================================ */
+let cronoFin=0, cronoTick=null, cronoEj='', cronoAviso=false;
+
+/* '2-3 min' descansa 2 min: el rango bajo ya alcanza, y si quieres más
+   está el +30 s. '45 s' son 45 segundos. '—' no lleva cronómetro. */
+function segsDescanso(txt){
+  if(!txt || txt==='—') return 0;
+  const m = String(txt).match(/\d+/);
+  if(!m) return 0;
+  return /min/.test(txt) ? +m[0]*60 : +m[0];
+}
+const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+function iniciarDescanso(segs, ej){
+  cronoFin = Date.now() + segs*1000;
+  cronoEj = ej||''; cronoAviso = false;
+  const c=document.getElementById('crono');
+  c.classList.add('on'); c.classList.remove('listo');
+  document.getElementById('upd').classList.add('subido');
+  pintarCrono();
+  clearInterval(cronoTick);
+  cronoTick = setInterval(pintarCrono, 250);
+}
+function pintarCrono(){
+  const restan = Math.round((cronoFin - Date.now())/1000);
+  const c=document.getElementById('crono');
+  document.getElementById('cronoT').textContent = mmss(Math.max(0,restan));
+  if(restan>0){
+    document.getElementById('cronoE').textContent = cronoEj ? `Descanso · ${cronoEj}` : 'Descanso';
+    return;
+  }
+  document.getElementById('cronoE').textContent = 'Listo — va la siguiente serie';
+  c.classList.add('listo');
+  if(!cronoAviso){
+    cronoAviso = true;
+    if(navigator.vibrate) navigator.vibrate([220,120,220]);
+  }
+  if(restan < -25) cerrarDescanso();   /* no se queda tapando la pantalla */
+}
+function cerrarDescanso(){
+  clearInterval(cronoTick); cronoTick=null;
+  document.getElementById('crono').classList.remove('on','listo');
+  document.getElementById('upd').classList.remove('subido');
+}
+
+/* ============================================================
+   3c. QUÉ PESO TOCA HOY, Y CÓMO VIENE EL EJERCICIO
+   ============================================================ */
+/* Tope de repeticiones del rango prescrito. Devuelve null cuando el rango no
+   se mide en repeticiones (planchas, "al fallo"): ahí no hay peso que sugerir. */
+function topeReps(r){
+  if(!r || /fallo/i.test(r) || /\bs\b|min/.test(r)) return null;
+  const nums = String(r).match(/\d+/g);
+  if(!nums) return null;
+  return +nums[nums.length>1?1:0];
+}
+/* La regla del propio plan: si en TODAS las series llegaste al tope del rango
+   con el RIR pedido o menos, sube un escalón; si no, repites el mismo peso.
+   Sin sesiones anteriores no sugiere nada — no se inventa un punto de partida. */
+function sugerencia(e){
+  const rows = S.fuerza.filter(x=>x.ej===e.n && (nz(x.kg)>0||nz(x.reps)>0));
+  if(!rows.length) return null;
+  const f = rows[rows.length-1].f;
+  if(f===hoy()) return null;                       /* hoy ya lo estás haciendo */
+  const ult = rows.filter(x=>x.f===f).sort((a,b)=>a.serie-b.serie);
+  const hechas = ult.map(x=>`${coma(x.kg||0)}×${x.reps||0}`).join('  ·  ');
+  const tope = topeReps(e.r);
+  const kgs = ult.map(x=>nz(x.kg)).filter(k=>k>0);
+  if(tope===null || !kgs.length) return {f, hechas, txt:null};
+  const kg = Math.max(...kgs);
+  const llego = ult.length >= (e.s||1)
+    && ult.every(x=>nz(x.reps)>=tope
+        && (x.rir===''||x.rir===undefined||nz(x.rir)<=(e.rir===undefined?99:e.rir)));
+  /* Con mancuernas no existe el medio kilo: se sube al siguiente par que tengas. */
+  const conMancuerna = /mancuerna|goblet/i.test(e.n) || /Elevaciones laterales/i.test(e.n);
+  return {f, hechas, sube:llego,
+    txt: llego
+      ? (conMancuerna ? 'sube al siguiente escalón de mancuerna' : `sube a ${coma(kg+2.5)} kg`)
+      : `repite ${coma(kg)} kg`};
+}
+function historialHTML(ej){
+  const rows = S.fuerza.filter(x=>x.ej===ej && (nz(x.kg)>0||nz(x.reps)>0));
+  if(!rows.length) return `<p class="prev">Todavía no hay sesiones registradas de este ejercicio.</p>`;
+  const porFecha = {};
+  rows.forEach(x=>{ (porFecha[x.f]=porFecha[x.f]||[]).push(x); });
+  const fechas = Object.keys(porFecha).sort().reverse().slice(0,8);
+  return `<table>${fechas.map(f=>{
+    const s = porFecha[f].slice().sort((a,b)=>a.serie-b.serie);
+    return `<tr><td>${fechaCorta(f)}</td><td>${s.map(x=>`${coma(x.kg||0)}×${x.reps||0}`).join('  ·  ')}</td></tr>`;
+  }).join('')}</table>${fechas.length===8?`<p class="prev">Se muestran las últimas 8 sesiones.</p>`:''}`;
+}
+
 /* ============================================================
    4. VISTAS
    ============================================================ */
@@ -726,13 +863,6 @@ function render(){
 }
 
 /* ---------- ENTRENAR ---------- */
-function lastSets(ej){
-  const rows = S.fuerza.filter(x=>x.ej===ej && (nz(x.kg)>0||nz(x.reps)>0));
-  if(!rows.length) return null;
-  const f = rows[rows.length-1].f;
-  const same = rows.filter(x=>x.f===f);
-  return {f, txt: same.map(x=>`${x.kg||0}×${x.reps||0}`).join('  ·  ')};
-}
 function todaySet(ej,i){
   return S.fuerza.find(x=>x.f===hoy() && x.ej===ej && x.serie===i) || {};
 }
@@ -749,7 +879,6 @@ function vHoy(){
 
   list.forEach((e,idx)=>{
     const drawn = frames(e.d);
-    const prev = lastSets(e.n);
     const nSets = e.s||1;
     let done=0;
     for(let i=1;i<=nSets;i++){ if(nz(todaySet(e.n,i).reps)>0) done++; }
@@ -796,7 +925,14 @@ function vHoy(){
         </tr>`;
       }
       h+=`</tbody></table>`;
-      if(prev) h+=`<span class="prev">Última vez (${prev.f}): ${prev.txt}</span>`;
+      const sg = sugerencia(e);
+      if(sg) h+=`<div class="sug">Última vez (${fechaCorta(sg.f)}): ${sg.hechas}`
+              + (sg.txt?`<br><b>Hoy: ${sg.txt}</b>`:'') + `</div>`;
+      const segs = segsDescanso(e.rest);
+      h+=`<div class="fila-ex">`;
+      if(segs) h+=`<button class="act mini" data-rest="${segs}" data-restej="${e.n}">Descanso ${mmss(segs)}</button>`;
+      h+=`<button class="act mini ghost" data-hist="${idx}">Historial</button></div>
+        <div class="hist hide" data-histbox="${idx}"></div>`;
     }
     h+=`</div></article>`;
   });
@@ -1145,6 +1281,21 @@ document.addEventListener('click',e=>{
       S=Object.assign(JSON.parse(JSON.stringify(DEF)),{cfg:S.cfg}); save(); render(); toast('Registros borrados');
     } return;
   }
+  if(b.dataset.rest){ iniciarDescanso(+b.dataset.rest, b.dataset.restej); return; }
+  if(b.dataset.hist!==undefined){
+    const caja = b.closest('.ex').querySelector(`[data-histbox="${b.dataset.hist}"]`);
+    const abierta = !caja.classList.contains('hide');
+    if(abierta){ caja.classList.add('hide'); b.textContent='Historial'; return; }
+    /* se arma al abrirla para que muestre lo de recién, no lo del render */
+    caja.innerHTML = historialHTML(PLAN[dia][+b.dataset.hist].n);
+    caja.classList.remove('hide'); b.textContent='Ocultar historial';
+    return;
+  }
+  if(b.id==='btnCrono30'){ cronoFin += 30000; cronoAviso=false;
+    document.getElementById('crono').classList.remove('listo');
+    if(!cronoTick) cronoTick=setInterval(pintarCrono,250);
+    pintarCrono(); return; }
+  if(b.id==='btnCronoX'){ cerrarDescanso(); return; }
   if(b.id==='btnGuardar'){
     saveNow();                       /* sin esperar los 600 ms del guardado automático */
     const r=resumenSesion();
