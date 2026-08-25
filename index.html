@@ -382,6 +382,16 @@ flexPies:{v:'S',eq:null,
      {fc:[-.4,.7],hd:[55,115],sh:[74,121],hp:[118,107],el:[78,135],hn:[64,138],kn:[144,99],ft:[162,92]}],
   ar:[[[34,106],[38,128]]]},
 
+/* Flexión Tyson. De PERFIL obligatoriamente: todo el movimiento pasa en el
+   plano sagital (la cadera va atrás y arriba), y de frente no se vería nada.
+   El muro va dibujado porque es lo que define el ejercicio — los pies se
+   apoyan ahí para no resbalar. */
+tyson:{v:'S',eq:null,
+  bg:()=>box(180,46,12,96,'#fff')+floor(),
+  p:[{fc:[-.5,.6],hd:[44,110],sh:[64,116],hp:[116,126],el:[61,129],hn:[58,142],kn:[146,133],ft:[176,139]},
+     {fc:[-.2,.75],hd:[52,120],sh:[72,112],hp:[122,78],el:[64,128],hn:[58,142],kn:[152,114],ft:[176,139]}],
+  ar:[[[112,126],[128,72]]]},
+
 /* Sentadilla búlgara. Reemplaza a la sentadilla con barra: no hay soporte
    donde cargarse la barra al hombro. */
 bulgara:{v:'S',eq:'dbS',
@@ -621,6 +631,8 @@ A:[
   c:'De pie, glúteo y abdomen apretados. Si la lumbar se arquea, el peso es mucho. La barra sube en línea recta pasando cerca de la cara.'},
  {n:'Flexiones con los pies en la banca',s:3,r:'12-15',rir:1,rest:'90 s',d:'flexPies',
   c:'Va en lugar del press inclinado, porque tu banca es plana. Con los pies arriba el esfuerzo se corre a la parte alta del pecho, que es justo lo que la banca plana no alcanza. Cuerpo en línea recta de talón a cabeza, sin hundir la cadera. Baja en 3 segundos hasta rozar el suelo con el pecho. Cuando 15 te queden fáciles, sube los pies más alto.'},
+ {n:'Flexión Tyson (pies contra el muro)',s:3,r:'8-12',rir:1,rest:'90 s',d:'tyson',
+  c:'Punta de los pies apoyada contra la base del muro, manos en el suelo un poco más adelante que los hombros, cuerpo estirado. Baja el pecho al suelo como una flexión normal y, al subir, empuja la cadera hacia atrás y hacia arriba rodando el peso hacia los pies, hasta quedar en V invertida con la cabeza entre los brazos; desde ahí vuelves adelante a la plancha y encadenas la siguiente. Es un movimiento continuo y mecedor, no dos ejercicios pegados. Carga pecho y tríceps como cualquier flexión, pero el tramo de atrás le mete mucho HOMBRO: por eso va en el día A, y por eso te va a costar más de lo que parece — parte con 8 y no te enojes si son menos. El muro solo está para que los pies no resbalen; si resbalan igual, ponte una toalla o búscate un zócalo. Si la lumbar se te hunde en la parte de plancha, se acabó la serie.'},
  {n:'Aperturas con mancuernas',s:3,r:'15',rir:1,rest:'60 s',d:'aperturas',
   c:'Vas acostado boca arriba en la banca, con los pies en el suelo: el dibujo está visto DESDE ARRIBA, por eso se parece a las elevaciones laterales. Codos ligeramente flexionados y fijos durante todo el recorrido. Abre hasta sentir el estiramiento del pecho, sin forzar el hombro.'},
  {n:'Elevaciones laterales',s:3,r:'15-20',rir:1,rest:'45 s',d:'laterales',
@@ -664,7 +676,9 @@ C:[
  {n:'Elevación de talones con mancuernas',s:3,r:'20',rir:1,rest:'45 s',d:'gemelos',
   c:'Rango completo: baja el talón todo lo que puedas y sube hasta la punta. Pausa arriba.'},
  {n:'Plancha frontal',s:3,r:'45-60 s',rest:'45 s',d:'plancha',
-  c:'Glúteo apretado, cadera neutra, cuerpo en línea recta. Si la lumbar se arquea, se acabó la serie: no hay premio por aguantar mal.'},
+  c:'Glúteo apretado, cadera neutra, cuerpo en línea recta. Si la lumbar se arquea, se acabó la serie: no hay premio por aguantar mal. Aprieta «Aguante» y suéltala cuando suene.'},
+ {n:'Plancha lateral',s:3,r:'30 s x lado',rest:'30 s',d:'planchaLat',
+  c:'Va inmediatamente después de la frontal, sin descanso entremedio: la frontal aguanta la cadera por delante y esta la aguanta de lado, y juntas cubren el cinturón entero. Codo bajo el hombro, cadera alta, cuerpo en línea vista desde arriba. Los 30 segundos son POR LADO: aguantas un lado, giras y aguantas el otro, y recién ahí descansas. Si la cadera se te cae, se acabó la serie.'},
  {n:'Dead bug',s:3,r:'12 x lado',rest:'45 s',d:'deadbug',
   c:'Lumbar pegada a la colchoneta durante todo el movimiento. Lento y con control. Si la espalda se despega, acorta el rango.'},
  {n:'CARDIO — a tu elección',cardio:1,s:1,r:'12 min',sug:'Trotadora',rest:'—',
@@ -725,7 +739,7 @@ const DEF = {
   cfg:{alt:190,peso:90,edad:33,sexo:1,act:1.55,def:0.17,prot:2.1,gr:0.85,inicio:''},
   semana:1,      /* solo respaldo: la semana de verdad sale de la fecha, ver semanaDe() */
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
-  cardio:[],   // {f,sem,dia,tipo,min,int,kcal,nota} — tipo = la modalidad que eligió
+  cardio:[],   // {f,sem,dia,tipo,min,metros,kcal,nota} — tipo = la modalidad que eligió
   comida:[],   // {f,sem,tipo,kcal,p,c,g,agua,ayuno,adh,txt,nota}
   medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota}
   sesiones:[]  // {f,sem,dia,sueno,zona,dolor,nota} — cómo llegaste a entrenar
@@ -857,7 +871,7 @@ const coma = n => String(n).replace('.',',');
    segundo plano, y un contador que resta se atrasaría justo
    mientras descansas con el teléfono guardado.
    ============================================================ */
-let cronoFin=0, cronoTick=null, cronoEj='', cronoAviso=false;
+let cronoFin=0, cronoTick=null, cronoEj='', cronoAviso=false, cronoModo='descanso';
 
 /* '2-3 min' descansa 2 min: el rango bajo ya alcanza, y si quieres más
    está el +30 s. '45 s' son 45 segundos. '—' no lleva cronómetro. */
@@ -867,11 +881,55 @@ function segsDescanso(txt){
   if(!m) return 0;
   return /min/.test(txt) ? +m[0]*60 : +m[0];
 }
+/* Los ejercicios de aguante prescriben TIEMPO, no repeticiones ('45-60 s',
+   '30 s x lado'): ahí el cronómetro tiene que medir la serie, no el descanso.
+   Se toma el extremo bajo del rango, igual que en el descanso; para pasarse
+   está el +30 s. */
+function segsAguante(r){
+  if(!r) return 0;
+  const t = String(r);
+  if(!/\bs\b|segundo/.test(t)) return 0;
+  const m = t.match(/\d+/);
+  return m ? +m[0] : 0;
+}
 const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 
-function iniciarDescanso(segs, ej){
+/* ---- alarma audible ----
+   El aviso era solo vibración, y con el teléfono en el suelo o con la
+   vibración apagada no se nota — que es justo lo que pasó aguantando una
+   plancha. El AudioContext se crea DENTRO del click que arranca el
+   cronómetro: los navegadores móviles no dejan sonar audio que no venga de
+   un gesto del usuario, así que crearlo al cargar la página no serviría. */
+let audioCtx = null;
+function prepararAudio(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!audioCtx && AC) audioCtx = new AC();
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }catch(e){ audioCtx = null; }   /* sin audio la vibración sigue avisando */
+}
+function pitido(veces){
+  if(!audioCtx) return;
+  try{
+    const t0 = audioCtx.currentTime;
+    for(let i=0;i<(veces||3);i++){
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      const t = t0 + i*0.3;
+      o.type = 'sine'; o.frequency.setValueAtTime(880, t);
+      /* Rampa en vez de encender y apagar de golpe: un gain que salta de 0 a
+         1 suena como un chasquido, no como un pitido. */
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.4, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t+0.24);
+    }
+  }catch(e){}
+}
+
+function iniciarCrono(segs, ej, modo){
   cronoFin = Date.now() + segs*1000;
-  cronoEj = ej||''; cronoAviso = false;
+  cronoEj = ej||''; cronoAviso = false; cronoModo = modo||'descanso';
   const c=document.getElementById('crono');
   c.classList.add('on'); c.classList.remove('listo');
   document.getElementById('upd').classList.add('subido');
@@ -883,15 +941,20 @@ function pintarCrono(){
   const restan = Math.round((cronoFin - Date.now())/1000);
   const c=document.getElementById('crono');
   document.getElementById('cronoT').textContent = mmss(Math.max(0,restan));
+  const serie = cronoModo==='serie';
   if(restan>0){
-    document.getElementById('cronoE').textContent = cronoEj ? `Descanso · ${cronoEj}` : 'Descanso';
+    document.getElementById('cronoE').textContent =
+      (serie?'Aguanta':'Descanso') + (cronoEj?` · ${cronoEj}`:'');
     return;
   }
-  document.getElementById('cronoE').textContent = 'Listo — va la siguiente serie';
+  document.getElementById('cronoE').textContent = serie
+    ? 'Se acabó la serie — suelta y descansa'
+    : 'Listo — va la siguiente serie';
   c.classList.add('listo');
   if(!cronoAviso){
     cronoAviso = true;
-    if(navigator.vibrate) navigator.vibrate([220,120,220]);
+    pitido(serie?4:3);
+    if(navigator.vibrate) navigator.vibrate([220,120,220,120,220]);
   }
   if(restan < -25) cerrarDescanso();   /* no se queda tapando la pantalla */
 }
@@ -1120,17 +1183,17 @@ function vHoy(){
     if(e.cardio){
       const c = filaCardio();
       const elegido = modalidadCardio(c.tipo, e.sug);
-      h+=`<div class="grid g3" style="margin-top:12px">
+      /* g4 se parte en 2 columnas bajo los 560 px, así que en el teléfono
+         esto queda en dos filas de dos y no en cuatro campos apretados. */
+      h+=`<div class="grid g4" style="margin-top:12px">
         <div><label>Qué hiciste</label><select data-car="tipo">
           ${CARDIOS.map(t=>`<option ${elegido===t?'selected':''}>${t}</option>`).join('')}
         </select></div>
         <div><label>Minutos</label><input type="number" inputmode="numeric" data-car="min" value="${c.min||''}"></div>
-        <div><label>Intensidad 1-10</label><input type="number" inputmode="numeric" data-car="int" value="${c.int||''}"></div>
+        <div><label>Metros</label><input type="number" inputmode="numeric" data-car="metros" value="${c.metros||''}"></div>
+        <div><label>Kcal quemadas</label><input type="number" inputmode="numeric" data-car="kcal" value="${c.kcal||''}"></div>
       </div>
-      <div class="grid g3" style="margin-top:10px">
-        <div><label>Kcal aprox.</label><input type="number" inputmode="numeric" data-car="kcal" value="${c.kcal||''}"></div>
-      </div>
-      <div class="sug">El plan te pide <b>${e.r}</b> a esta intensidad. La máquina da lo mismo: elige la que tengas y anota los minutos que hiciste de verdad, no los que decía el plan.</div>`;
+      <div class="sug">El plan te pide <b>${e.r}</b>. La máquina da lo mismo: elige la que tengas y anota lo que hiciste de verdad, no lo que decía el plan. Los metros y las kcal los lees de la pantalla de la máquina; si lo que hiciste no los da (cuerda, escaleras), déjalos en blanco.</div>`;
     }else{
       /* Hay ejercicios donde no existe el peso ni el RIR (el suelo pélvico es
          una contracción, no una carga). Mostrarles una columna "Peso kg" que
@@ -1151,7 +1214,11 @@ function vHoy(){
       if(sg) h+=`<div class="sug">Última vez (${fechaCorta(sg.f)}): ${sg.hechas}`
               + (sg.txt?`<br><b>Hoy: ${sg.txt}</b>`:'') + `</div>`;
       const segs = segsDescanso(e.rest);
+      const aguante = segsAguante(e.r);
       h+=`<div class="fila-ex">`;
+      /* Primero el de la serie y después el del descanso, en el orden en que
+         se usan: aguantas, suena, sueltas, descansas. */
+      if(aguante) h+=`<button class="act mini" data-serie="${aguante}" data-serieej="${e.n}">Aguante ${mmss(aguante)}</button>`;
       if(segs) h+=`<button class="act mini" data-rest="${segs}" data-restej="${e.n}">Descanso ${mmss(segs)}</button>`;
       h+=`<button class="act mini ghost" data-hist="${idx}">Historial</button></div>
         <div class="hist hide" data-histbox="${idx}"></div>`;
@@ -1439,7 +1506,7 @@ function expText(){
     /* Los minutos totales ya van arriba; acá va QUÉ hizo, que desde que la
        modalidad la elige él es un dato y no un supuesto. */
     const car=S.cardio.filter(x=>semanaDe(x.f)===w && nz(x.min)>0);
-    if(car.length) o+=`Cardio hecho: ${car.map(x=>`${fechaCorta(x.f)} ${x.tipo||'sin anotar'} ${nz(x.min)} min`).join(', ')}\n`;
+    if(car.length) o+=`Cardio hecho: ${car.map(x=>`${fechaCorta(x.f)} ${x.tipo||'sin anotar'} ${nz(x.min)} min${nz(x.metros)?' · '+nz(x.metros)+' m':''}${nz(x.kcal)?' · '+nz(x.kcal)+' kcal':''}`).join(', ')}\n`;
     const ejs=[...new Set(S.fuerza.filter(x=>semanaDe(x.f)===w&&nz(x.reps)>0).map(x=>x.ej))];
     ejs.forEach(e=>{
       const st=S.fuerza.filter(x=>semanaDe(x.f)===w&&x.ej===e&&nz(x.reps)>0);
@@ -1583,7 +1650,10 @@ document.addEventListener('click',e=>{
       S=Object.assign(JSON.parse(JSON.stringify(DEF)),{cfg:S.cfg}); save(); render(); toast('Registros borrados');
     } return;
   }
-  if(b.dataset.rest){ iniciarDescanso(+b.dataset.rest, b.dataset.restej); return; }
+  /* prepararAudio() va DENTRO del click a propósito: el navegador solo deja
+     sonar audio nacido de un gesto del usuario. */
+  if(b.dataset.serie){ prepararAudio(); iniciarCrono(+b.dataset.serie, b.dataset.serieej, 'serie'); return; }
+  if(b.dataset.rest){ prepararAudio(); iniciarCrono(+b.dataset.rest, b.dataset.restej, 'descanso'); return; }
   if(b.dataset.hist!==undefined){
     const caja = b.closest('.ex').querySelector(`[data-histbox="${b.dataset.hist}"]`);
     const abierta = !caja.classList.contains('hide');
@@ -1665,7 +1735,7 @@ document.addEventListener('input',e=>{
     /* El tipo arranca en el sugerido del día: si anota los minutos y nunca
        toca el desplegable, el registro tiene que decir igual lo que hizo —
        era justo lo que se veía en pantalla. */
-    if(!row.f){ row={f:hoy(),sem:semanaHoy(),dia,tipo:cardioSugerido(dia),min:'',int:'',kcal:''}; S.cardio.push(row); }
+    if(!row.f){ row={f:hoy(),sem:semanaHoy(),dia,tipo:cardioSugerido(dia),min:'',metros:'',kcal:''}; S.cardio.push(row); }
     row.tipo = modalidadCardio(row.tipo, cardioSugerido(dia));   /* deja el viejo en el formato nuevo */
     row[fld]=v; row.dia=dia; row.sem=semanaHoy(); save(); refrescarGuardado(); return;
   }
