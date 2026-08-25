@@ -629,8 +629,8 @@ A:[
   c:'Acostado. Codos apuntando al techo y fijos: solo se mueve el antebrazo. Baja hacia la frente, controlado.'},
  {n:'Fondos entre banca y suelo',s:2,r:'al fallo',rir:0,rest:'60 s',d:'fondos',
   c:'Manos en el borde de la banca, pies apoyados adelante. Baja hasta que el codo llegue a 90°. Última serie de la sesión: vacía el tanque.'},
- {n:'CARDIO — remo suave',cardio:1,s:1,r:'10 min',rest:'—',d:'remoMaq',
-  c:'Ritmo conversacional, unas 22-24 paladas por minuto. Es enfriamiento, no entrenamiento.'}
+ {n:'CARDIO — a tu elección',cardio:1,s:1,r:'10 min',sug:'Remo',rest:'—',
+  c:'Es enfriamiento, no entrenamiento: ritmo conversacional, tienes que poder hablar en frases completas. Elige abajo lo que hiciste y anota los minutos reales — la modalidad da lo mismo, lo que importa es que sea suave.'}
 ],
 B:[
  {n:'Peso muerto rumano con barra',s:4,r:'8-10',rir:2,rest:'2-3 min',d:'rdl',
@@ -649,8 +649,8 @@ B:[
   c:'Agarre neutro, palmas enfrentadas. Baja en 2 segundos.'},
  {n:'Pájaros con mancuernas',s:3,r:'15',rir:1,rest:'45 s',d:'pajaros',
   c:'Ojo con el dibujo: está de frente para que se vea la apertura, pero tú vas INCLINADO. Bisagra desde la cadera hasta que el torso quede casi paralelo al suelo, rodillas algo flexionadas y espalda plana; desde ahí abre con los codos, no con las manos. Compensa todo el empuje del día A.'},
- {n:'CARDIO — remo por intervalos',cardio:1,s:1,r:'10 min',rest:'—',d:'remoMaq',
-  c:'1 minuto fuerte / 1 minuto suave, cinco rondas. Cuida la técnica cuando llegue la fatiga: primero empujan las piernas, después tira la espalda.'}
+ {n:'CARDIO — a tu elección',cardio:1,s:1,r:'10 min',sug:'Remo',rest:'—',
+  c:'Hoy va por intervalos: 1 minuto fuerte / 1 minuto suave, cinco rondas. Sirve en cualquier modalidad — trotadora, bici, remo o cuerda. Cuida la técnica cuando llegue la fatiga; el minuto fuerte no vale nada si lo haces mal.'}
 ],
 C:[
  {n:'Sentadilla búlgara con mancuernas',s:3,r:'10-12 x pierna',rir:2,rest:'2 min',d:'bulgara',
@@ -667,8 +667,8 @@ C:[
   c:'Glúteo apretado, cadera neutra, cuerpo en línea recta. Si la lumbar se arquea, se acabó la serie: no hay premio por aguantar mal.'},
  {n:'Dead bug',s:3,r:'12 x lado',rest:'45 s',d:'deadbug',
   c:'Lumbar pegada a la colchoneta durante todo el movimiento. Lento y con control. Si la espalda se despega, acorta el rango.'},
- {n:'CARDIO — trotadora pendiente 4%',cardio:1,s:1,r:'12 min',rest:'—',d:'trotadora',
-  c:'Ritmo moderado. La pendiente sube el gasto sin exigirte más velocidad, que es lo amable con la rodilla.'}
+ {n:'CARDIO — a tu elección',cardio:1,s:1,r:'12 min',sug:'Trotadora',rest:'—',
+  c:'Ritmo moderado y amable con la rodilla, que vienes de piernas. Sube la dificultad sin subir el impacto: en trotadora, más pendiente en vez de más velocidad; en bici o elíptica, más resistencia en vez de más revoluciones.'}
 ],
 D:[
  {n:'Press banca con barra',s:3,r:'10-12',rir:2,rest:'90 s',d:'banca',
@@ -683,12 +683,12 @@ D:[
   c:'Extensión lumbar directa. Sube en 2 segundos, baja en 2, sin rebote. Mirada al suelo para no comprimir el cuello.'},
  {n:'Bird dog',s:3,r:'12 x lado',rest:'45 s',d:'birddog',
   c:'Brazo y pierna contrarios. La cadera no rota: imagina un vaso de agua sobre la zona lumbar.'},
- {n:'CARDIO — trotadora pendiente 3%',cardio:1,s:1,r:'30 min',rest:'—',d:'trotadora',
-  c:'La sesión larga de la semana. Ritmo sostenible, deberías poder hablar en frases cortas.'}
+ {n:'CARDIO — a tu elección',cardio:1,s:1,r:'30 min',sug:'Trotadora',rest:'—',
+  c:'La sesión larga de la semana, y la que más pesa: ritmo sostenible, deberías poder hablar en frases cortas. Elige lo que puedas sostener media hora sin sufrir — si te aburre siempre lo mismo, cámbialo, que el mejor cardio es el que haces.'}
 ],
 E:[
- {n:'CARDIO — remo o cuerda',cardio:1,s:1,r:'30 min',rest:'—',d:'cuerda',
-  c:'Remo continuo, o cuerda en bloques de 90 segundos con 60 de pausa. Los bloques de 3 minutos suenan bien en el papel, pero casi nadie los sostiene sin trabarse.'},
+ {n:'CARDIO — a tu elección',cardio:1,s:1,r:'30 min',sug:'Cuerda',rest:'—',
+  c:'Continuo y tranquilo, o en bloques de 90 segundos fuertes con 60 de pausa. Los bloques de 3 minutos suenan bien en el papel, pero casi nadie los sostiene sin trabarse.'},
  {n:'Plancha lateral',s:3,r:'30 s x lado',rest:'30 s',d:'planchaLat',
   c:'Codo bajo el hombro, cadera alta, cuerpo en línea. Trabaja los oblicuos, esa franja de los costados.'},
  {n:'Hollow hold',s:3,r:'30 s',rest:'30 s',d:'hollow',
@@ -700,6 +700,23 @@ E:[
 ]
 };
 
+/* El cardio ya no lo fija el plan: el plan fija los MINUTOS y la intensidad,
+   que es lo que produce el efecto, y la máquina la elige él según lo que
+   tenga a mano ese día. Por eso los 5 días guardan el mismo bloque y lo que
+   se registra es la modalidad elegida, no la prescrita. */
+const CARDIOS = ['Trotadora','Trote afuera','Caminata rápida','Bicicleta','Bicicleta estática',
+                 'Elíptica','Remo','Cuerda','Escaleras','Natación','Otro'];
+
+/* Suelo pélvico. Va en los CINCO días porque el protocolo es diario, no por
+   grupo muscular — y en los días que no entrena, el propio texto se lo dice.
+   Sin dibujo a propósito: es una contracción interna, un monigote no enseña
+   nada acá; lo enseña el texto. Y sin columna de peso, porque no hay peso. */
+const SUELO = {
+  n:'Suelo pélvico (Kegels)', s:3, r:'10 contracciones', rest:'45 s', sinPeso:1, tag:'SP',
+  c:'Contrae el músculo que usarías para cortar el chorro de orina, o para subir los testículos hacia adentro. No aprietes glúteo, abdomen ni muslos, y no aguantes la respiración: si algo se mueve por fuera, estás usando el músculo equivocado. Cada serie son 10 contracciones aguantando 6-8 segundos, descansando el doble de lo que aguantaste; al terminar la última serie, remata con 10 contracciones rápidas de 1 segundo. Empieza acostado, que es lo fácil; cuando te salgan limpias, hazlas sentado, y después de pie. Es lo único con evidencia real para una erección más firme — el músculo comprime la base del pene y es lo que sostiene la presión una vez que ya hay erección — y de paso te cuida la continencia para más adelante. Hazlo TAMBIÉN los días que no entrenas: el protocolo es diario y los resultados aparecen entre la semana 4 y la 6, no antes. Dos avisos: corta el chorro de verdad una sola vez, solo para ubicar el músculo (hacerlo seguido deja la vejiga a medio vaciar), y no andes apretando todo el día — un suelo pélvico permanentemente tenso empeora las cosas en vez de mejorarlas.'
+};
+Object.keys(PLAN).forEach(k=>PLAN[k].push({...SUELO}));
+
 /* ============================================================
    3. ESTADO Y ALMACENAMIENTO
    ============================================================ */
@@ -708,7 +725,7 @@ const DEF = {
   cfg:{alt:190,peso:90,edad:33,sexo:1,act:1.55,def:0.17,prot:2.1,gr:0.85,inicio:''},
   semana:1,      /* solo respaldo: la semana de verdad sale de la fecha, ver semanaDe() */
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
-  cardio:[],   // {f,sem,tipo,min,int,kcal,nota}
+  cardio:[],   // {f,sem,dia,tipo,min,int,kcal,nota} — tipo = la modalidad que eligió
   comida:[],   // {f,sem,tipo,kcal,p,c,g,agua,ayuno,adh,txt,nota}
   medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota}
   sesiones:[]  // {f,sem,dia,sueno,zona,dolor,nota} — cómo llegaste a entrenar
@@ -898,13 +915,16 @@ function topeReps(r){
 /* La regla del propio plan: si en TODAS las series llegaste al tope del rango
    con el RIR pedido o menos, sube un escalón; si no, repites el mismo peso.
    Sin sesiones anteriores no sugiere nada — no se inventa un punto de partida. */
+/* Cuando no hay peso no se escribe "0×10": en la plancha o en el suelo pélvico
+   ese 0 no es un dato, es ruido que hay que aprender a ignorar. */
+const serieTxt = x => nz(x.kg)>0 ? `${coma(x.kg)}×${x.reps||0}` : `${x.reps||0}`;
 function sugerencia(e){
   const rows = S.fuerza.filter(x=>x.ej===e.n && (nz(x.kg)>0||nz(x.reps)>0));
   if(!rows.length) return null;
   const f = rows[rows.length-1].f;
   if(f===hoy()) return null;                       /* hoy ya lo estás haciendo */
   const ult = rows.filter(x=>x.f===f).sort((a,b)=>a.serie-b.serie);
-  const hechas = ult.map(x=>`${coma(x.kg||0)}×${x.reps||0}`).join('  ·  ');
+  const hechas = ult.map(serieTxt).join('  ·  ');
   const tope = topeReps(e.r);
   const kgs = ult.map(x=>nz(x.kg)).filter(k=>k>0);
   if(tope===null || !kgs.length) return {f, hechas, txt:null};
@@ -979,7 +999,7 @@ function historialHTML(ej){
   const fechas = todas.slice().reverse().slice(0,8);
   return graf + `<table>${fechas.map(f=>{
     const s = porFecha[f].slice().sort((a,b)=>a.serie-b.serie);
-    return `<tr><td>${fechaCorta(f)}</td><td>${s.map(x=>`${coma(x.kg||0)}×${x.reps||0}`).join('  ·  ')}</td></tr>`;
+    return `<tr><td>${fechaCorta(f)}</td><td>${s.map(serieTxt).join('  ·  ')}</td></tr>`;
   }).join('')}</table>${fechas.length===8?`<p class="prev">Se muestran las últimas 8 sesiones.</p>`:''}`;
 }
 
@@ -1030,6 +1050,28 @@ function avisoDelDia(){
 function todaySet(ej,i){
   return S.fuerza.find(x=>x.f===hoy() && x.ej===ej && x.serie===i) || {};
 }
+/* El cardio de hoy se busca por DÍA, no por nombre: el nombre ahora lo elige
+   él y cambia. La segunda búsqueda rescata los registros viejos, que se
+   guardaron con el nombre prescrito y sin día — al primer cambio se les
+   estampa el día y quedan en el modelo nuevo. Se busca en dos pasos a
+   propósito: un solo find con un OR devolvería el que aparezca primero en la
+   lista, no el del día que estás mirando. */
+function filaCardio(){
+  return S.cardio.find(x=>x.f===hoy() && x.dia===dia)
+      || S.cardio.find(x=>x.f===hoy() && x.dia===undefined && /^CARDIO/.test(String(x.tipo||'')))
+      || {};
+}
+const cardioSugerido = d => (PLAN[d].find(e=>e.cardio)||{}).sug || '';
+/* Los registros viejos guardaron el nombre PRESCRITO ('CARDIO — remo suave'),
+   que no está en la lista de modalidades. Si se lo pasamos tal cual al
+   desplegable, el navegador no encuentra esa opción y muestra la PRIMERA: la
+   pantalla diría "Trotadora" mientras el registro dice remo. Encontrado
+   probándolo, no leyéndolo. */
+function modalidadCardio(tipo, sug){
+  if(CARDIOS.includes(tipo)) return tipo;
+  const t = String(tipo||'').toLowerCase();
+  return CARDIOS.find(m=>t.includes(m.toLowerCase())) || sug;
+}
 function vHoy(){
   const list = PLAN[dia];
   let h = `<h2>Sesión de hoy</h2>
@@ -1051,8 +1093,8 @@ function vHoy(){
     for(let i=1;i<=nSets;i++){ if(nz(todaySet(e.n,i).reps)>0) done++; }
     h+=`<article class="ex${done===nSets?' done':''}" data-open="0" data-ex="${idx}">
       <button class="ex-head" data-toggle="${idx}">
-        <span class="ex-idx">${e.cardio?'CAR':String(idx+1).padStart(2,'0')}</span>
-        <span class="ex-name">${e.n}<em>${e.s>1?e.s+' series · ':''}${e.r}${e.rir!==undefined?' · RIR '+e.rir:''}${e.rest&&e.rest!=='—'?' · '+e.rest:''}</em></span>
+        <span class="ex-idx">${e.tag||(e.cardio?'CAR':String(idx+1).padStart(2,'0'))}</span>
+        <span class="ex-name">${e.n}<em>${e.s>1?e.s+' series · ':''}${e.r}${e.rir!==undefined?' · RIR '+e.rir:''}${e.rest&&e.rest!=='—'?' · '+e.rest:''}${e.sug?' · sugerido: '+e.sug:''}</em></span>
         <span class="chev">▸</span>
       </button>
       <div class="ex-body">`;
@@ -1069,27 +1111,40 @@ function vHoy(){
         <span><i style="background:var(--ink);width:6px;height:6px;border-radius:99px"></i>hacia dónde mira</span>
       </div>`;
     }
-    h+=`<p class="cue">${e.c}</p>
-      <a class="demo" target="_blank" rel="noopener"
-         href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.n.replace('CARDIO — ','')+' técnica correcta')}">
+    h+=`<p class="cue">${e.c}</p>`;
+    /* En el cardio la modalidad la eliges tú, así que un video de "a tu
+       elección" no lleva a ninguna parte. */
+    if(!e.cardio) h+=`<a class="demo" target="_blank" rel="noopener"
+         href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.n+' técnica correcta')}">
          Ver demostración en video ↗</a>`;
     if(e.cardio){
-      const c = S.cardio.find(x=>x.f===hoy() && x.tipo===e.n) || {};
+      const c = filaCardio();
+      const elegido = modalidadCardio(c.tipo, e.sug);
       h+=`<div class="grid g3" style="margin-top:12px">
-        <div><label>Minutos</label><input type="number" inputmode="numeric" data-car="${e.n}" data-fld="min" value="${c.min||''}"></div>
-        <div><label>Intensidad 1-10</label><input type="number" inputmode="numeric" data-car="${e.n}" data-fld="int" value="${c.int||''}"></div>
-        <div><label>Kcal aprox.</label><input type="number" inputmode="numeric" data-car="${e.n}" data-fld="kcal" value="${c.kcal||''}"></div>
-      </div>`;
+        <div><label>Qué hiciste</label><select data-car="tipo">
+          ${CARDIOS.map(t=>`<option ${elegido===t?'selected':''}>${t}</option>`).join('')}
+        </select></div>
+        <div><label>Minutos</label><input type="number" inputmode="numeric" data-car="min" value="${c.min||''}"></div>
+        <div><label>Intensidad 1-10</label><input type="number" inputmode="numeric" data-car="int" value="${c.int||''}"></div>
+      </div>
+      <div class="grid g3" style="margin-top:10px">
+        <div><label>Kcal aprox.</label><input type="number" inputmode="numeric" data-car="kcal" value="${c.kcal||''}"></div>
+      </div>
+      <div class="sug">El plan te pide <b>${e.r}</b> a esta intensidad. La máquina da lo mismo: elige la que tengas y anota los minutos que hiciste de verdad, no los que decía el plan.</div>`;
     }else{
+      /* Hay ejercicios donde no existe el peso ni el RIR (el suelo pélvico es
+         una contracción, no una carga). Mostrarles una columna "Peso kg" que
+         siempre va en blanco es pedirle al usuario que ignore un campo cada
+         vez que entrena. */
       h+=`<table class="sets"><thead><tr>
-        <th style="width:38px">Serie</th><th>Peso kg</th><th>Reps</th><th>RIR</th></tr></thead><tbody>`;
+        <th style="width:38px">Serie</th>${e.sinPeso?`<th>Contracciones</th>`:`<th>Peso kg</th><th>Reps</th><th>RIR</th>`}</tr></thead><tbody>`;
       for(let i=1;i<=nSets;i++){
         const s=todaySet(e.n,i);
-        h+=`<tr><th>${i}</th>
-          <td><input type="number" inputmode="decimal" step="0.5" data-ej="${e.n}" data-s="${i}" data-fld="kg" value="${s.kg??''}"></td>
-          <td><input type="number" inputmode="numeric" data-ej="${e.n}" data-s="${i}" data-fld="reps" value="${s.reps??''}"></td>
-          <td><input type="number" inputmode="numeric" data-ej="${e.n}" data-s="${i}" data-fld="rir" value="${s.rir??''}"></td>
-        </tr>`;
+        h+=`<tr><th>${i}</th>`;
+        if(!e.sinPeso) h+=`<td><input type="number" inputmode="decimal" step="0.5" data-ej="${e.n}" data-s="${i}" data-fld="kg" value="${s.kg??''}"></td>`;
+        h+=`<td><input type="number" inputmode="numeric" data-ej="${e.n}" data-s="${i}" data-fld="reps" value="${s.reps??''}"></td>`;
+        if(!e.sinPeso) h+=`<td><input type="number" inputmode="numeric" data-ej="${e.n}" data-s="${i}" data-fld="rir" value="${s.rir??''}"></td>`;
+        h+=`</tr>`;
       }
       h+=`</tbody></table>`;
       const sg = sugerencia(e);
@@ -1381,10 +1436,14 @@ function expText(){
     o+=`Peso: ${r.peso??'-'} kg · Cintura: ${r.cint??'-'} cm · Sueño: ${r.sueno??'-'} h\n`;
     const mol=S.sesiones.filter(x=>semanaDe(x.f)===w && x.zona && x.zona!=='Ninguna' && x.dolor && x.dolor!=='—');
     if(mol.length) o+=`Molestias: ${mol.map(x=>`${fechaCorta(x.f)} ${x.zona} (${x.dolor})`).join(', ')}\n`;
+    /* Los minutos totales ya van arriba; acá va QUÉ hizo, que desde que la
+       modalidad la elige él es un dato y no un supuesto. */
+    const car=S.cardio.filter(x=>semanaDe(x.f)===w && nz(x.min)>0);
+    if(car.length) o+=`Cardio hecho: ${car.map(x=>`${fechaCorta(x.f)} ${x.tipo||'sin anotar'} ${nz(x.min)} min`).join(', ')}\n`;
     const ejs=[...new Set(S.fuerza.filter(x=>semanaDe(x.f)===w&&nz(x.reps)>0).map(x=>x.ej))];
     ejs.forEach(e=>{
       const st=S.fuerza.filter(x=>semanaDe(x.f)===w&&x.ej===e&&nz(x.reps)>0);
-      o+=`  ${e}: ${st.map(x=>`${x.kg||0}×${x.reps}${x.rir!==''&&x.rir!==undefined?'@'+x.rir:''}`).join(', ')}\n`;
+      o+=`  ${e}: ${st.map(x=>`${nz(x.kg)>0?x.kg+'×':''}${x.reps}${x.rir!==''&&x.rir!==undefined?'@'+x.rir:''}`).join(', ')}\n`;
     });
     o+=`\n`;
   });
@@ -1483,16 +1542,18 @@ function resumenSesion(){
   const f = hoy();
   const nombres = new Set(PLAN[dia].map(e=>e.n));
   const series = S.fuerza.filter(x=>x.f===f && nombres.has(x.ej) && nz(x.reps)>0);
-  const cardio = S.cardio.filter(x=>x.f===f && nombres.has(x.tipo) && nz(x.min)>0);
+  /* El cardio ya no se puede buscar por nombre prescrito: ahora la modalidad
+     la elige él. Se busca el bloque del día. */
+  const c = filaCardio();
   return {series:series.length, ejercicios:new Set(series.map(x=>x.ej)).size,
-          cardio:cardio.reduce((a,x)=>a+nz(x.min),0)};
+          cardio:nz(c.min), cardioTipo:modalidadCardio(c.tipo, cardioSugerido(dia))};
 }
 function textoGuardado(){
   const r = resumenSesion();
   if(!r.series && !r.cardio) return `Día ${dia} · nada anotado todavía`;
   const partes = [];
   if(r.series) partes.push(`${r.series} serie${r.series===1?'':'s'} en ${r.ejercicios} ejercicio${r.ejercicios===1?'':'s'}`);
-  if(r.cardio) partes.push(`${r.cardio} min de cardio`);
+  if(r.cardio) partes.push(`${r.cardio} min de ${r.cardioTipo ? r.cardioTipo.toLowerCase() : 'cardio'}`);
   return `${saveT?'Guardando…':'Guardado ✓'} Día ${dia} · ${partes.join(' · ')}`;
 }
 function refrescarGuardado(){
@@ -1599,10 +1660,14 @@ document.addEventListener('input',e=>{
     row[el.dataset.ses]=v; row.dia=dia; save(); return;
   }
   if(el.dataset.car){
-    const tipo=el.dataset.car, fld=el.dataset.fld;
-    let row=S.cardio.find(x=>x.f===hoy()&&x.tipo===tipo);
-    if(!row){ row={f:hoy(),sem:semanaHoy(),tipo,min:'',int:'',kcal:''}; S.cardio.push(row); }
-    row[fld]=v; row.sem=semanaHoy(); save(); refrescarGuardado(); return;
+    const fld=el.dataset.car;
+    let row=filaCardio();
+    /* El tipo arranca en el sugerido del día: si anota los minutos y nunca
+       toca el desplegable, el registro tiene que decir igual lo que hizo —
+       era justo lo que se veía en pantalla. */
+    if(!row.f){ row={f:hoy(),sem:semanaHoy(),dia,tipo:cardioSugerido(dia),min:'',int:'',kcal:''}; S.cardio.push(row); }
+    row.tipo = modalidadCardio(row.tipo, cardioSugerido(dia));   /* deja el viejo en el formato nuevo */
+    row[fld]=v; row.dia=dia; row.sem=semanaHoy(); save(); refrescarGuardado(); return;
   }
   if(el.dataset.com){
     let row=S.comida.find(x=>x.f===hoy());
