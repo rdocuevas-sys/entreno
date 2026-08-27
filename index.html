@@ -263,6 +263,14 @@
   .graf-d{font-weight:600;font-size:13px;color:var(--ink-2)}
   .graf-d.bien{color:var(--pine)}
   .graf-d.mal{color:var(--rust)}
+  /* ---- historial de medidas ---- */
+  button.lnk{background:none;border:0;padding:0;font:inherit;color:var(--pine);
+             text-decoration:underline;cursor:pointer}
+  button.lnk.del{color:var(--rust);text-decoration:none;font-size:16px;line-height:1;
+                 padding:0 2px}
+  .baja{color:var(--pine)}
+  .sube{color:var(--rust)}
+  tr.sel td{background:var(--pine-lt)}
   hr{border:0;border-top:1px solid var(--line);margin:18px 0}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -741,7 +749,7 @@ const DEF = {
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
   cardio:[],   // {f,sem,dia,tipo,min,metros,kcal,nota} — tipo = la modalidad que eligió
   comida:[],   // {f,sem,tipo,kcal,p,c,g,agua,ayuno,adh,txt,nota}
-  medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota}
+  medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota} — UNO POR FECHA
   sesiones:[]  // {f,sem,dia,sueno,zona,dolor,nota} — cómo llegaste a entrenar
 };
 /* La molestia sirve si es accionable: por eso cada zona sabe qué ejercicios
@@ -807,6 +815,16 @@ const hoy = ()=>{
 };
 const nz = v => (v===''||v===null||v===undefined||isNaN(v))?0:+v;
 
+/* Sumar días sobre la FECHA, no sobre los milisegundos. Chile cambia la hora en
+   septiembre: restar 7×86.400.000 ms cruzando ese domingo corre el borde una
+   hora y deja fuera (o mete de más) el registro de un día entero. */
+const masDias = (f,n)=>{
+  const p=String(f).split('-');
+  const d=new Date(+p[0],+p[1]-1,+p[2]); d.setDate(d.getDate()+n);
+  const dos=x=>String(x).padStart(2,'0');
+  return `${d.getFullYear()}-${dos(d.getMonth()+1)}-${dos(d.getDate())}`;
+};
+
 /* ---- la semana sale de la fecha, no de un número que hay que acordarse de subir ----
    Antes cada registro se estampaba con el número que estuviera puesto en Ajustes.
    El día que se te olvidaba subirlo, dos semanas de entrenamiento caían en la misma
@@ -834,15 +852,54 @@ const semanaHoy = () => semanaDe(hoy());
    semanal. Anotar el peso donde corresponde no recalculaba nada y terminabas
    comiendo para un peso viejo. Manda la última medición; el de Ajustes queda
    como punto de partida mientras no hayas medido. */
-function pesoActual(){
-  const con = S.medidas.filter(x=>nz(x.peso)>0 && fechaMs(x.f));
-  if(!con.length) return nz(S.cfg.peso);
-  return nz(con.slice().sort((a,b)=>fechaMs(a.f)-fechaMs(b.f)).pop().peso);
-}
 function pesoMedido(){
   const con = S.medidas.filter(x=>nz(x.peso)>0 && fechaMs(x.f));
   if(!con.length) return null;
   return con.slice().sort((a,b)=>fechaMs(a.f)-fechaMs(b.f)).pop();
+}
+/* Media de los pesajes en [desde, hasta). Las fechas son ISO, así que se
+   comparan como texto y no hay que volver a pasar por milisegundos. */
+function mediaPeso(desde, hasta){
+  const v = S.medidas.filter(x=>nz(x.peso)>0 && fechaMs(x.f) && x.f>=desde && x.f<hasta)
+                     .map(x=>nz(x.peso));
+  return v.length ? {media:+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2), n:v.length} : null;
+}
+/* ---- la tendencia, no el número del día ----
+   Pesándose a diario, "hoy contra ayer" es agua: un kilo entre dos mañanas
+   seguidas es normal y no significa nada. Lo que se compara es la MEDIA de los
+   últimos 7 días contra la de los 7 anteriores. La ventana termina en el último
+   pesaje y no en hoy, para que no se vacíe si pasa unos días sin pesarse. */
+function tendenciaPeso(){
+  const u = pesoMedido(); if(!u) return null;
+  const fin = masDias(u.f, 1);
+  const a = mediaPeso(masDias(fin,-7), fin);
+  const b = mediaPeso(masDias(fin,-14), masDias(fin,-7));
+  return {hasta:u.f, ult:nz(u.peso), a, b,
+          dif:(a&&b)? +(a.media-b.media).toFixed(2) : null};
+}
+/* Para calorías y proteína manda la MEDIA de la semana, no el último pesaje:
+   con pesaje diario el objetivo saltaría 30 kcal de un día para otro por el
+   agua de anoche. */
+function pesoActual(){
+  const t = tendenciaPeso();
+  if(!t) return nz(S.cfg.peso);
+  return t.a ? t.a.media : t.ult;
+}
+/* ---- lo que muestra cada semana del Resumen ----
+   Con varios registros por semana ya no vale "el primero que aparezca". El peso
+   es la MEDIA de los pesajes de esa semana; las cintas, el último valor anotado
+   de cada una por separado, porque te pesas a diario pero te mides el lunes. */
+function medidaSemana(w){
+  const rs = S.medidas.filter(x=>fechaMs(x.f) && semanaDe(x.f)===w)
+                      .sort((a,b)=>fechaMs(a.f)-fechaMs(b.f));
+  const ps = rs.filter(x=>nz(x.peso)>0).map(x=>nz(x.peso));
+  const out = {peso: ps.length ? +(ps.reduce((a,b)=>a+b,0)/ps.length).toFixed(2) : null,
+               pesajes: ps.length};
+  ['cint','cintE','cad','pecho','brazo','muslo'].forEach(k=>{
+    out[k]=null;
+    for(let i=rs.length-1;i>=0;i--) if(nz(rs[i][k])>0){ out[k]=nz(rs[i][k]); break; }
+  });
+  return out;
 }
 
 /* ---- objetivos calculados ---- */
@@ -862,6 +919,7 @@ function targets(){
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const fechaCorta = f => { const p=String(f).split('-'); return `${+p[2]}-${MESES[+p[1]-1]}`; };
 const coma = n => String(n).replace('.',',');
+const un = n => (n===null||n===undefined||n==='')?n:+(+n).toFixed(1);   /* un decimal para leer */
 
 /* ============================================================
    3b. CRONÓMETRO DE DESCANSO
@@ -1038,6 +1096,9 @@ function grafico(puntos, opt){
                 fill="none" stroke="var(--pine)" stroke-width="2.5"
                 stroke-linecap="round" stroke-linejoin="round"/>
       ${pts.map((p,i)=>{const u=i===pts.length-1;
+        /* con pesaje diario los puntos se pisan unos con otros: pasado cierto
+           número queda solo la línea y el punto de hoy */
+        if(!u && pts.length>20) return '';
         return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${u?4:2.6}"
           fill="${u?'var(--pine)':'#fff'}" stroke="var(--pine)" stroke-width="2"/>`;}).join('')}
       <text x="${mL}" y="${H-4}" font-size="10" font-family="monospace" fill="var(--slate)">${fechaCorta(P[0].f)} · ${coma(primero)}</text>
@@ -1326,39 +1387,63 @@ function vComida(){
 }
 
 /* ---------- MEDIDAS ---------- */
-/* La fila que la pestaña está mostrando. Se guarda la referencia al objeto y no
-   la semana, porque si cambias la fecha del registro la semana cambia con ella
-   y la siguiente tecla crearía una fila nueva en vez de seguir editando esta. */
-let filaMedidas = null;
+/* ---- la fecha es un SELECTOR, no un campo del registro ----
+   Antes la pestaña se clavaba a la semana en curso y solo cabía UN registro por
+   semana: pesarse el martes y el jueves guardaba un solo número, porque el
+   segundo pisaba al primero. Y el peso de Ajustes no dejaba fecha ninguna.
+   Ahora hay un registro POR DÍA: eliges el día arriba y editas ese día. */
+let medFecha = null;
+function filaMed(f, crear){
+  let r = S.medidas.find(x=>x.f===f);
+  if(!r && crear){ r={f, sem:semanaDe(f)}; S.medidas.push(r); }
+  return r;
+}
+const CINTAS = [['cint','Cintura ombligo'],['cintE','Cintura estrecha'],['cad','Cadera'],
+                ['pecho','Pecho'],['brazo','Brazo relajado'],['muslo','Muslo']];
+const signoD = d => (d>0?'+':'')+coma(d);
+const claseD = d => d<0?'baja':d>0?'sube':'';
 function vMedidas(){
-  const sem = semanaHoy();
-  const hallada = S.medidas.find(x=>semanaDe(x.f)===sem);
-  filaMedidas = hallada || null;
-  const m = hallada || {};
-  const prev = S.medidas.find(x=>semanaDe(x.f)===sem-1);
-  const dP = (prev&&m.peso&&prev.peso)?(m.peso-prev.peso).toFixed(2):'—';
-  const dC = (prev&&m.cint&&prev.cint)?(m.cint-prev.cint).toFixed(1):'—';
+  const f = medFecha || (medFecha = hoy());
+  const m = filaMed(f) || {};
+  const sem = semanaDe(f);
+  const t = tendenciaPeso();
+
+  /* Δ de cintura: contra la medición anterior que la tenga, no contra "la
+     semana pasada" — la cinta no sale todas las semanas. */
+  const conCint = S.medidas.filter(x=>nz(x.cint)>0 && fechaMs(x.f) && x.f<f)
+                           .sort((a,b)=>fechaMs(a.f)-fechaMs(b.f)).pop();
+  const dC = (nz(m.cint)>0 && conCint) ? +(nz(m.cint)-nz(conCint.cint)).toFixed(1) : null;
+
+  let statPeso, statPie;
+  if(!t){
+    statPeso = `<div class="stat"><b>—</b><small>todavía sin pesajes</small></div>`;
+    statPie  = `<div class="stat"><b>—</b><small>anota tu peso y aparece la tendencia</small></div>`;
+  }else{
+    statPeso = `<div class="stat"><b>${coma(t.ult)} kg</b><small>último pesaje · ${fechaCorta(t.hasta)}</small></div>`;
+    statPie  = (t.a && t.dif!==null)
+      ? `<div class="stat"><b class="${claseD(t.dif)}">${signoD(t.dif)} kg</b><small>${(t.a.n>1||t.b.n>1)?`media 7 días (${coma(un(t.a.media))}) vs los 7 previos`:'vs tu pesaje anterior'}</small></div>`
+      : t.a
+        ? `<div class="stat"><b>${coma(un(t.a.media))} kg</b><small>media de ${t.a.n} pesaje${t.a.n===1?'':'s'} · faltan 7 días más para comparar</small></div>`
+        : `<div class="stat"><b>—</b><small>sin pesajes en los últimos 7 días</small></div>`;
+  }
+
   let h=`<h2>Peso y medidas</h2>
-  <p class="lede">Todos los lunes, en ayunas y después del baño. En recomposición la balanza se estanca mientras el cuerpo cambia — la cinta métrica es la que manda.</p>
+  <p class="lede">Pésate cuando quieras — todos los días si te sirve — <b>en ayunas y después del baño</b>. Cada día queda con su fecha. Las cintas son de una vez por semana, los lunes.</p>
   <div class="card">
-    <div class="eyebrow">Semana ${sem}</div>
+    <div class="eyebrow">Semana ${sem}${f===hoy()?' · hoy':''}</div>
     <div class="grid g2" style="margin:10px 0 12px">
-      <div><label>Fecha</label><input type="date" data-med="f" value="${m.f||hoy()}"></div>
+      <div><label>Día que estás anotando</label><input type="date" data-medfecha="1" value="${f}"></div>
       <div><label>Peso kg</label><input type="number" inputmode="decimal" step="0.1" data-med="peso" value="${m.peso??''}"></div>
     </div>
     <div class="grid g3">
-      <div><label>Cintura ombligo</label><input type="number" inputmode="decimal" step="0.1" data-med="cint" value="${m.cint??''}"></div>
-      <div><label>Cintura estrecha</label><input type="number" inputmode="decimal" step="0.1" data-med="cintE" value="${m.cintE??''}"></div>
-      <div><label>Cadera</label><input type="number" inputmode="decimal" step="0.1" data-med="cad" value="${m.cad??''}"></div>
-      <div><label>Pecho</label><input type="number" inputmode="decimal" step="0.1" data-med="pecho" value="${m.pecho??''}"></div>
-      <div><label>Brazo relajado</label><input type="number" inputmode="decimal" step="0.1" data-med="brazo" value="${m.brazo??''}"></div>
-      <div><label>Muslo</label><input type="number" inputmode="decimal" step="0.1" data-med="muslo" value="${m.muslo??''}"></div>
+      ${CINTAS.map(([k,lbl])=>`<div><label>${lbl}</label><input type="number" inputmode="decimal" step="0.1" data-med="${k}" value="${m[k]??''}"></div>`).join('')}
     </div>
     <div class="grid g2" style="margin-top:12px">
-      <div class="stat"><b>${dP}</b><small>Δ peso vs semana anterior</small></div>
-      <div class="stat"><b>${dC}</b><small>Δ cintura vs semana anterior</small></div>
+      ${statPeso}${statPie}
     </div>
+    ${dC!==null?`<p class="lede" style="margin:10px 0 0">Cintura <b class="${claseD(dC)}">${signoD(dC)} cm</b> desde el ${fechaCorta(conCint.f)}.</p>`:''}
   </div>
+  <div class="note"><b>La balanza sube y baja sola.</b> Entre dos mañanas seguidas puedes marcar un kilo de diferencia y es agua, sal y lo que quedó por digerir. Por eso acá lo que manda no es el número del día sino la <b>media de 7 días</b>: esa se mueve solo cuando cambia el cuerpo. Y en recomposición la cinta métrica manda sobre las dos.</div>
   <div class="note"><b>Cómo medir siempre igual.</b> Cintura al nivel del ombligo, cinta sin apretar, exhalando normal. Brazo a mitad entre hombro y codo, colgando. Muslo 15 cm sobre la rodilla — marca el punto con lápiz para repetirlo. Y saca fotos de frente, perfil y espalda cada 4 semanas: a los dos meses te dirán más que cualquier número.</div>`;
 
   h+=`<h2>Cómo vas</h2><div class="card">
@@ -1370,13 +1455,32 @@ function vMedidas(){
          vacio:'Con dos mediciones de cintura aparece la curva.'})}
   </div>`;
 
-  if(S.medidas.length){
-    h+=`<h2>Historial</h2><div class="scroll"><table class="tbl"><thead><tr>
-      <th>Sem</th><th>Fecha</th><th>Peso</th><th>Cintura</th><th>Pecho</th><th>Brazo</th></tr></thead><tbody>`;
-    S.medidas.slice().sort((a,b)=>fechaMs(a.f)-fechaMs(b.f)).forEach(x=>{
-      h+=`<tr><td>${semanaDe(x.f)}</td><td>${x.f||''}</td><td>${coma(x.peso??'')}</td><td>${coma(x.cint??'')}</td><td>${coma(x.pecho??'')}</td><td>${coma(x.brazo??'')}</td></tr>`;
+  const rs = S.medidas.filter(x=>fechaMs(x.f)).sort((a,b)=>fechaMs(a.f)-fechaMs(b.f));
+  if(rs.length){
+    /* El Δ se calcula en orden cronológico y recién después se da vuelta la
+       tabla: calculado sobre la lista ya invertida, cada fila se compararía con
+       el día SIGUIENTE y todos los signos saldrían al revés. */
+    const ps = rs.filter(x=>nz(x.peso)>0);
+    const dPrev = {};
+    ps.forEach((x,k)=>{ if(k) dPrev[x.f] = +(nz(x.peso)-nz(ps[k-1].peso)).toFixed(1); });
+    h+=`<h2>Historial</h2>
+    <p class="lede">El más reciente arriba. Toca la fecha para corregir ese día; la ✕ lo borra.</p>
+    <div class="scroll"><table class="tbl"><thead><tr>
+      <th>Fecha</th><th>Sem</th><th>Peso</th><th>Δ</th><th>Cintura</th><th>Pecho</th><th>Brazo</th><th></th>
+    </tr></thead><tbody>`;
+    rs.slice().reverse().forEach(x=>{
+      const d = dPrev[x.f];
+      h+=`<tr${x.f===f?' class="sel"':''}>
+        <td><button class="lnk" data-medir="${x.f}">${fechaCorta(x.f)}</button></td>
+        <td>${semanaDe(x.f)}</td>
+        <td>${coma(x.peso??'')}</td>
+        <td>${d===undefined?'':`<span class="${claseD(d)}">${signoD(d)}</span>`}</td>
+        <td>${coma(x.cint??'')}</td><td>${coma(x.pecho??'')}</td><td>${coma(x.brazo??'')}</td>
+        <td><button class="lnk del" data-medborrar="${x.f}" aria-label="Borrar el registro del ${x.f}">✕</button></td>
+      </tr>`;
     });
-    h+=`</tbody></table></div>`;
+    h+=`</tbody></table></div>
+    <p class="prev">${ps.length} pesaje${ps.length===1?'':'s'} anotado${ps.length===1?'':'s'}.</p>`;
   }
   return h;
 }
@@ -1390,14 +1494,14 @@ function weekAgg(w){
   const min=c.reduce((a,x)=>a+nz(x.min),0);
   const co=S.comida.filter(x=>semanaDe(x.f)===w && nz(x.kcal)>0);
   const avg=(k)=>co.length?Math.round(co.reduce((a,x)=>a+nz(x[k]),0)/co.length):null;
-  const m=S.medidas.find(x=>semanaDe(x.f)===w);
+  const m=medidaSemana(w);
   const se=S.sesiones.filter(x=>semanaDe(x.f)===w);
   const cs=se.filter(x=>nz(x.sueno)>0);
   const sueno = cs.length ? +(cs.reduce((a,x)=>a+nz(x.sueno),0)/cs.length).toFixed(1) : null;
   return {w,ses,vol:Math.round(vol),min,dias:co.length,sueno,
           kcal:avg('kcal'),p:avg('p'),c:avg('c'),g:avg('g'),
           adh:co.length?(co.reduce((a,x)=>a+nz(x.adh),0)/co.length).toFixed(1):null,
-          peso:m?m.peso:null, cint:m?m.cint:null};
+          peso:m.peso, cint:m.cint, pesajes:m.pesajes};
 }
 /* Cuántas sesiones SEGUIDAS vienes arrastrando la misma molestia. Una sesión
    suelta con el hombro sensible es ruido; tres seguidas es una señal. */
@@ -1422,7 +1526,7 @@ function vResumen(){
   <p class="lede">Se arma solo con lo que vas cargando. Exporta al final de cada semana y pásame el texto para ajustar el plan.</p>
   <div class="scroll"><table class="tbl"><thead><tr>
     <th>Sem</th><th>Ses.</th><th>Volumen kg</th><th>Cardio min</th><th>Días com.</th>
-    <th>Kcal/día</th><th>Prot/día</th><th>Adher.</th><th>Sueño</th><th>Peso</th><th>Cintura</th>
+    <th>Kcal/día</th><th>Prot/día</th><th>Adher.</th><th>Sueño</th><th>Peso medio</th><th>Cintura</th>
   </tr></thead><tbody>`;
   rows.forEach((r,i)=>{
     const p=rows[i-1];
@@ -1431,10 +1535,12 @@ function vResumen(){
     h+=`<tr><td>${r.w}</td><td>${r.ses||''}</td><td>${r.vol||''}</td><td>${r.min||''}</td>
       <td>${r.dias||''}</td><td>${r.kcal??''}</td><td>${r.p??''}</td><td>${r.adh??''}</td>
       <td>${r.sueno!=null?coma(r.sueno)+' h':''}</td>
-      <td>${coma(r.peso??'')}${dp?` <small>(${dp>0?'+':''}${coma(dp)})</small>`:''}</td>
+      <td>${coma(un(r.peso)??'')}${dp?` <small>(${dp>0?'+':''}${coma(dp)})</small>`:''}</td>
       <td>${coma(r.cint??'')}${dc?` <small>(${dc>0?'+':''}${coma(dc)})</small>`:''}</td></tr>`;
   });
   h+=`</tbody></table></div>`;
+  if(rows.some(r=>r.pesajes>1))
+    h+=`<p class="prev">El peso de cada semana es la <b>media</b> de los pesajes de esa semana, no el último. Día a día la balanza es agua.</p>`;
 
   /* La lectura mira la última semana CON DATOS y la compara con la anterior
      que también los tenga. Antes miraba rows[rows.length-1], que es la semana
@@ -1491,16 +1597,17 @@ function vResumen(){
 }
 function expText(){
   const t=targets();
-  const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida].map(x=>semanaDe(x.f)))].sort((a,b)=>a-b);
+  /* las medidas también hacen semana: si solo te pesaste, esa semana igual sale */
+  const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida,...S.medidas].map(x=>semanaDe(x.f)))].sort((a,b)=>a-b);
   let o=`RESUMEN DE ENTRENAMIENTO\n`;
-  o+=`Perfil: ${S.cfg.alt} cm · ${pesoActual()} kg · ${S.cfg.edad} años\n`;
+  o+=`Perfil: ${S.cfg.alt} cm · ${coma(un(pesoActual()))} kg · ${S.cfg.edad} años\n`;
   o+=`Objetivos: ${t.kcal} kcal / ${t.p} g prot / ${t.ch} g carb / ${t.g} g grasa\n\n`;
   weeks.forEach(w=>{
     const r=weekAgg(w);
     o+=`--- SEMANA ${w} ---\n`;
     o+=`Sesiones: ${r.ses} · Volumen: ${r.vol} kg · Cardio: ${r.min} min\n`;
     o+=`Nutrición (${r.dias} días): ${r.kcal??'-'} kcal · ${r.p??'-'} g prot · ${r.c??'-'} g carb · ${r.g??'-'} g grasa · adherencia ${r.adh??'-'}\n`;
-    o+=`Peso: ${r.peso??'-'} kg · Cintura: ${r.cint??'-'} cm · Sueño: ${r.sueno??'-'} h\n`;
+    o+=`Peso: ${un(r.peso)??'-'} kg${r.pesajes>1?` (media de ${r.pesajes} pesajes)`:''} · Cintura: ${r.cint??'-'} cm · Sueño: ${r.sueno??'-'} h\n`;
     const mol=S.sesiones.filter(x=>semanaDe(x.f)===w && x.zona && x.zona!=='Ninguna' && x.dolor && x.dolor!=='—');
     if(mol.length) o+=`Molestias: ${mol.map(x=>`${fechaCorta(x.f)} ${x.zona} (${x.dolor})`).join(', ')}\n`;
     /* Los minutos totales ya van arriba; acá va QUÉ hizo, que desde que la
@@ -1518,11 +1625,14 @@ function expText(){
 }
 
 /* ---------- AJUSTES ---------- */
+/* El peso ya no vive en dos lugares: hay una sola lista de pesajes con fecha y
+   los objetivos salen de la media de la última semana, no del número de anoche. */
 function pesoUsadoTxt(){
-  const m = pesoMedido();
-  return m
-    ? `Calorías y proteína calculadas con <b>${coma(m.peso)} kg</b>, tu última medición (${fechaCorta(m.f)}). El peso de acá abajo solo se usa mientras no hayas medido.`
-    : `Calorías y proteína calculadas con los <b>${coma(S.cfg.peso)} kg</b> de acá abajo. En cuanto anotes tu peso en <b>Medidas</b>, manda ese.`;
+  const t = tendenciaPeso();
+  if(!t) return `Calorías y proteína calculadas con <b>${coma(S.cfg.peso)} kg</b> de partida. En cuanto anotes un peso, manda el tuyo.`;
+  return t.a && t.a.n>1
+    ? `Calorías y proteína calculadas con <b>${coma(un(t.a.media))} kg</b>, la media de tus ${t.a.n} pesajes de la última semana (al ${fechaCorta(t.hasta)}).`
+    : `Calorías y proteína calculadas con <b>${coma(un(pesoActual()))} kg</b>, tu pesaje del ${fechaCorta(t.hasta)}. Pésate unos días más y pasa a usar la media.`;
 }
 const pesoSemanaTxt = () => `${pesoUsadoTxt()} · Vas en la <b>semana ${semanaHoy()}</b>, contada desde el primer día del plan: ya no hay que subirla a mano.`;
 function statsAjustesHTML(){
@@ -1537,11 +1647,11 @@ function statsAjustesHTML(){
 function vAjustes(){
   const c=S.cfg,t=targets();
   return `<h2>Ajustes</h2>
-  <p class="lede">Los objetivos calóricos se recalculan al instante. Actualiza el peso cada lunes.</p>
+  <p class="lede">Los objetivos calóricos se recalculan al instante. Lo que escribas en <b>peso de hoy</b> queda anotado con la fecha de hoy y sale en el historial de <b>Medidas</b>.</p>
   <div class="card">
     <div class="grid g3">
       <div><label>Estatura cm</label><input type="number" data-cfg="alt" value="${c.alt}"></div>
-      <div><label>Peso kg</label><input type="number" step="0.1" data-cfg="peso" value="${c.peso}"></div>
+      <div><label>Peso de hoy kg</label><input type="number" inputmode="decimal" step="0.1" data-hoypeso="1" value="${(filaMed(hoy())||{}).peso??''}" placeholder="sin anotar"></div>
       <div><label>Edad</label><input type="number" data-cfg="edad" value="${c.edad}"></div>
       <div><label>Sexo</label><select data-cfg="sexo">
         <option value="1" ${c.sexo==1?'selected':''}>Hombre</option>
@@ -1633,7 +1743,19 @@ function refrescarGuardado(){
    ============================================================ */
 document.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.dataset.tab){ tab=b.dataset.tab; render(); window.scrollTo(0,0); return; }
+  /* al entrar a Medidas siempre se aterriza en HOY, no en el día que quedó
+     seleccionado la última vez que se abrió */
+  if(b.dataset.tab){ tab=b.dataset.tab; if(tab==='medidas') medFecha=hoy();
+    render(); window.scrollTo(0,0); return; }
+  if(b.dataset.medir){ medFecha=b.dataset.medir; tab='medidas'; render(); window.scrollTo(0,0); return; }
+  if(b.dataset.medborrar){
+    const f=b.dataset.medborrar, r=S.medidas.find(x=>x.f===f);
+    if(!confirm(`¿Borrar el registro del ${f}${r&&nz(r.peso)>0?` (${coma(r.peso)} kg)`:''}?`)) return;
+    S.medidas = S.medidas.filter(x=>x.f!==f);
+    if(medFecha===f) medFecha=hoy();
+    saveNow(); render(); toast('Registro borrado');
+    return;
+  }
   if(b.dataset.day){ dia=b.dataset.day; render(); return; }
   if(b.dataset.toggle!==undefined){
     const a=b.closest('.ex'); a.dataset.open = a.dataset.open==='1'?'0':'1'; return;
@@ -1710,6 +1832,16 @@ function importar(){
   saveNow(); render(); toast(`Restaurados ${n} registros`);
 }
 
+/* La fecha de Medidas se atiende en 'change' y no en 'input': cambiarla
+   redibuja la pestaña entera, y redibujar desde 'input' destruye el campo que
+   estás tocando a media edición — que es exactamente el defecto del 10-ago. */
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.dataset.medfecha===undefined) return;
+  if(isNaN(fechaMs(el.value))) return;   /* fecha a medio escribir */
+  medFecha = el.value; render(); window.scrollTo(0,0);
+});
+
 document.addEventListener('input',e=>{
   const el=e.target; const v=el.value;
   if(el.dataset.ej){
@@ -1747,14 +1879,21 @@ document.addEventListener('input',e=>{
     return;
   }
   if(el.dataset.med){
-    let row=filaMedidas;
-    if(!row){ row={sem:semanaHoy(),f:hoy()}; S.medidas.push(row); filaMedidas=row; }
-    const k=el.dataset.med;
-    row[k]= k==='f'? v : (v===''?'':+v);
+    /* El registro es el del día que está seleccionado arriba. Se crea recién
+       cuando escribes algo: entrar a mirar un día viejo no debe dejar una fila
+       vacía con esa fecha. */
+    const row = filaMed(medFecha || hoy(), true);
+    row[el.dataset.med] = (v===''?'':+v);
     row.sem = semanaDe(row.f);
     save();
-    if(k==='peso') refrescarCabecera();   /* el peso mueve kcal y proteína */
+    if(el.dataset.med==='peso') refrescarCabecera();   /* el peso mueve kcal y proteína */
     return;
+  }
+  if(el.dataset.hoypeso!==undefined){
+    if(v==='') return;              /* campo a medio borrar: no se guarda un 0 */
+    const row = filaMed(hoy(), true);
+    row.peso = +v; row.sem = semanaDe(row.f);
+    save(); refrescarAjustes(); return;
   }
   if(el.dataset.cfg){
     if(v==='') return;              /* campo a medio borrar: no se guarda un 0 */
