@@ -37,6 +37,7 @@
     --ink-3:#8896901a;
     --line:#D3DAD6;
     --pine:#1E5F4E;
+    --pine-md:#7FB6A0;      /* el músculo que solo ayuda, en el mapa muscular */
     --pine-lt:#E4EFEA;
     --slate:#2C4A63;
     --amber:#B87614;
@@ -160,6 +161,18 @@
   .frame.ilu figcaption{padding:3px 0 0}
   .pieilu{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-2);
           margin:2px 0 4px}
+  /* ---- mapa muscular ---- */
+  .mus{display:flex;gap:14px;align-items:center;margin:12px 0 2px}
+  .mus-cuerpos{display:flex;gap:2px;flex:0 0 auto}
+  .mus-cuerpos svg{height:108px;width:auto;display:block}
+  .mus-txt{min-width:0;font-size:12.5px;line-height:1.4}
+  .mus-h{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
+         text-transform:uppercase;color:var(--pine);margin:0 0 6px}
+  .mus-txt p{margin:0 0 5px;display:flex;gap:7px;align-items:baseline}
+  .mus-txt p:last-child{margin-bottom:0}
+  .mus-txt i{width:9px;height:9px;border-radius:2px;flex:0 0 auto;position:relative;top:1px}
+  .mus-p{background:var(--pine)}
+  .mus-s{background:var(--pine-md)}
   /* margin:0 NO es decorativo: el navegador le pone 1em/40px a todo <figure>,
      y con tres columnas en un teléfono esos 80 px se comían la mitad del cuadro
      — el dibujo quedaba en 55 px dentro de una celda de 139. */
@@ -652,6 +665,38 @@ function imgAncha(k){
   const vb = (typeof EJ_VB!=='undefined' && EJ_VB[k]) || '';
   const p = vb.split(' ').map(Number);
   return p.length===4 && p[3]>0 && p[2]/p[3] > 1.6;
+}
+/* ---- mapa muscular ----
+   El cuerpo de frente y de espalda con lo que trabaja el ejercicio pintado.
+   Va SIEMPRE con los nombres escritos al lado: un polígono de color sin
+   nombre no enseña qué músculo es. */
+function mapaMus(k){
+  if(!k || typeof EJ_MUS === 'undefined' || typeof CUERPO === 'undefined') return '';
+  const m = EJ_MUS[k]; if(!m) return '';
+  const pri = new Set(m.p), sec = new Set(m.s);
+  const vista = v => {
+    let g = '';
+    Object.keys(CUERPO[v]).forEach(mus=>{
+      const c = pri.has(mus) ? 'var(--pine)' : sec.has(mus) ? 'var(--pine-md)' : 'var(--line)';
+      CUERPO[v][mus].forEach(pol=>{
+        g += `<polygon points="${pol}" fill="${c}" stroke="var(--card)" stroke-width=".5"/>`;
+      });
+    });
+    return `<svg viewBox="0 0 100 220" role="img" aria-hidden="true">${g}</svg>`;
+  };
+  /* dos músculos del modelo pueden compartir nombre (los dos hombros, el
+     tríceps que sale de frente y de espalda): se nombran una sola vez */
+  const nom = l => [...new Set(l.map(x=>MUS_NOMBRE[x]).filter(Boolean))].join(', ');
+  const p1 = nom(m.p), p2 = nom(m.s);
+  if(!p1 && !p2) return '';
+  return `<div class="mus">
+    <div class="mus-cuerpos">${vista('anterior')}${vista('posterior')}</div>
+    <div class="mus-txt">
+      <p class="mus-h">Qué trabaja</p>
+      ${p1?`<p><i class="mus-p"></i><b>${p1}</b></p>`:''}
+      ${p2?`<p><i class="mus-s"></i>${p2}<span class="prev" style="margin-left:4px">(ayudan)</span></p>`:''}
+    </div>
+  </div>`;
 }
 function frames(key){
   if(hayImg(key)) return imgEj(key);
@@ -1288,6 +1333,7 @@ function vHoy(){
       </div>`;
       }
     }
+    h+= mapaMus(e.d);
     h+=`<p class="cue">${e.c}</p>`;
     /* En el cardio la modalidad la eliges tú, así que un video de "a tu
        elección" no lleva a ninguna parte. */
