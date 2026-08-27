@@ -5,12 +5,13 @@
    Es lo único que hace que el teléfono se entere de que hay
    una versión nueva y muestre el aviso "Actualizar".
    ============================================================ */
-const VERSION = 'v14';
+const VERSION = 'v15';
 const CACHE = `entreno-${VERSION}`;
 
 const ASSETS = [
   './',
   './index.html',
+  './ejercicios.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

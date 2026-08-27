@@ -39,3 +39,22 @@ python -m http.server 4477
 
 El service worker necesita `http://localhost`/`127.0.0.1` o HTTPS: abriendo el archivo
 con doble clic (`file://`) no se registra y no hay instalación ni modo sin conexión.
+
+## Créditos de las ilustraciones
+
+Las ilustraciones de los ejercicios (`ejercicios.js`) vienen de
+[Workout Guide](https://github.com/bryllim/workout-guide), de Bryl Lim,
+construida a su vez sobre [Everkinetic](https://github.com/everkinetic/data).
+
+Licencia: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
+**Cambios respecto del original:** el color pasó de blanco fijo a `currentColor`
+(para que tomen el color de la app y sirvan igual en modo claro y oscuro), y los
+números de cada trazo se redondearon a enteros con SVGO (`floatPrecision: 0`),
+que a este tamaño no se nota y baja el peso de 1,7 MB a 411 KB. Los trazos así
+adaptados quedan bajo la misma licencia CC BY-SA 4.0.
+
+Dos ejercicios NO usan estas ilustraciones y conservan el dibujo propio: el
+**pull-over**, que no existe en la biblioteca, y la **elevación de talones**,
+porque todas sus versiones traen una máquina o una barra al hombro y acá se hace
+con mancuernas y sin rack.

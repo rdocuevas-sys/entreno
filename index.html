@@ -154,7 +154,16 @@
 
   .frames{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 6px}
   .frames.one{grid-template-columns:1fr;max-width:280px;margin-inline:auto}
-  .frame{background:var(--pine-lt);border-radius:8px;padding:4px;position:relative}
+  .frames.tres{grid-template-columns:repeat(3,1fr);gap:6px}
+  .frames.tres.apilada{grid-template-columns:1fr;gap:6px;max-width:340px;margin-inline:auto}
+  .frame.ilu{padding:2px;color:var(--ink)}
+  .frame.ilu figcaption{padding:3px 0 0}
+  .pieilu{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-2);
+          margin:2px 0 4px}
+  /* margin:0 NO es decorativo: el navegador le pone 1em/40px a todo <figure>,
+     y con tres columnas en un teléfono esos 80 px se comían la mitad del cuadro
+     — el dibujo quedaba en 55 px dentro de una celda de 139. */
+  .frame{background:var(--pine-lt);border-radius:8px;padding:4px;position:relative;margin:0}
   .frame figcaption{
     font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--pine);text-align:center;padding:2px 0 5px
@@ -298,6 +307,10 @@
   <button id="btnCronoX">Listo</button>
 </div>
 
+<!-- Las ilustraciones van en su propio archivo: son 370 KB de trazos y no
+     tienen por qué estorbar la lectura de este. Si no carga, la app sigue
+     andando con los dibujos de palitos de más abajo. -->
+<script src="./ejercicios.js"></script>
 <script>
 /* ============================================================
    1. DIBUJO DE EJERCICIOS  (SVG generado, sin imágenes externas)
@@ -615,7 +628,33 @@ function frame(key,idx){
   if(e.ar) e.ar.forEach(a=>{ s+=arrow(a[0],a[1],a[2]); });
   return svg(s);
 }
+/* ---- ilustraciones ----
+   Cada cuadro es UNA ruta sobre un lienzo de 512x512, pintada con
+   currentColor: por eso toma el color de la app y no hay que tener dos
+   versiones para el modo claro y el oscuro.
+   Dos ejercicios NO tienen ilustración a propósito y se quedan con el dibujo
+   de palitos: el pull-over, que no existe en la biblioteca, y la elevación de
+   talones, cuyas versiones traen todas una máquina o una barra al hombro —
+   y acá se hace con mancuernas y sin rack. */
+const hayImg = k => typeof EJ_IMG !== 'undefined' && Array.isArray(EJ_IMG[k]) && EJ_IMG[k].length > 0;
+/* El lienzo original es 512x512 y la figura ocupa como la mitad: usada tal cual
+   sale minuscula. EJ_VB trae el recorte, UNO por ejercicio y no por cuadro,
+   para que la persona no cambie de tamano entre un cuadro y el siguiente. */
+function imgEj(k){
+  const vb = (typeof EJ_VB!=='undefined' && EJ_VB[k]) || '0 0 512 512';
+  return EJ_IMG[k].map(d =>
+    `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">`
+    + `<path fill="currentColor" fill-rule="evenodd" d="${d}"/></svg>`);
+}
+/* Una postura tumbada (plancha, hollow, puente) es mucho mas ancha que alta:
+   en tres columnas quedaria una franja de 40 px. Esas van una debajo de otra. */
+function imgAncha(k){
+  const vb = (typeof EJ_VB!=='undefined' && EJ_VB[k]) || '';
+  const p = vb.split(' ').map(Number);
+  return p.length===4 && p[3]>0 && p[2]/p[3] > 1.6;
+}
 function frames(key){
+  if(hayImg(key)) return imgEj(key);
   const e=EX[key]; if(!e) return null;
   return e.p.length===1?[frame(key,0)]:[frame(key,0),frame(key,1)];
 }
@@ -634,7 +673,7 @@ const DAYS = [
 const PLAN = {
 A:[
  {n:'Press banca con barra',s:4,r:'6-10',rir:2,rest:'2-3 min',d:'banca',
-  c:'Escápulas retraídas y pies firmes en el suelo. Baja la barra a la línea del pecho, no al cuello. Es tu ejercicio de fuerza principal: acá cargas.'},
+  c:'Escápulas retraídas y pies firmes en el suelo. Baja la barra a la línea del pecho, no al cuello. Es tu ejercicio de fuerza principal: acá cargas. Ojo con el dibujo: ahí las manos salen más juntas que las tuyas — es el único de la banca plana que hay dibujado. Tú vas con la toma abierta normal.'},
  {n:'Press militar de pie con barra',s:4,r:'8-10',rir:2,rest:'2 min',d:'militar',
   c:'De pie, glúteo y abdomen apretados. Si la lumbar se arquea, el peso es mucho. La barra sube en línea recta pasando cerca de la cara.'},
  {n:'Flexiones con los pies en la banca',s:3,r:'12-15',rir:1,rest:'90 s',d:'flexPies',
@@ -642,7 +681,7 @@ A:[
  {n:'Flexión Tyson (pies contra el muro)',s:3,r:'8-12',rir:1,rest:'90 s',d:'tyson',
   c:'Punta de los pies apoyada contra la base del muro, manos en el suelo un poco más adelante que los hombros, cuerpo estirado. Baja el pecho al suelo como una flexión normal y, al subir, empuja la cadera hacia atrás y hacia arriba rodando el peso hacia los pies, hasta quedar en V invertida con la cabeza entre los brazos; desde ahí vuelves adelante a la plancha y encadenas la siguiente. Es un movimiento continuo y mecedor, no dos ejercicios pegados. Carga pecho y tríceps como cualquier flexión, pero el tramo de atrás le mete mucho HOMBRO: por eso va en el día A, y por eso te va a costar más de lo que parece — parte con 8 y no te enojes si son menos. El muro solo está para que los pies no resbalen; si resbalan igual, ponte una toalla o búscate un zócalo. Si la lumbar se te hunde en la parte de plancha, se acabó la serie.'},
  {n:'Aperturas con mancuernas',s:3,r:'15',rir:1,rest:'60 s',d:'aperturas',
-  c:'Vas acostado boca arriba en la banca, con los pies en el suelo: el dibujo está visto DESDE ARRIBA, por eso se parece a las elevaciones laterales. Codos ligeramente flexionados y fijos durante todo el recorrido. Abre hasta sentir el estiramiento del pecho, sin forzar el hombro.'},
+  c:'Acostado boca arriba en la banca, con los pies en el suelo. Codos ligeramente flexionados y fijos durante todo el recorrido. Abre hasta sentir el estiramiento del pecho, sin forzar el hombro. Ojo con el dibujo: ahí la banca sale inclinada y la tuya es plana — lo que tienes que copiar es el arco de los brazos, no el respaldo.'},
  {n:'Elevaciones laterales',s:3,r:'15-20',rir:1,rest:'45 s',d:'laterales',
   c:'Sube hasta la línea del hombro y no más. Sin impulso de cadera. Si necesitas balancearte, baja el peso.'},
  {n:'Press francés con barra de tríceps',s:3,r:'12',rir:1,rest:'60 s',d:'frances',
@@ -1223,9 +1262,22 @@ function vHoy(){
       </button>
       <div class="ex-body">`;
     if(drawn){
-      h+= drawn.length===1
-        ? `<div class="frames one"><figure class="frame"><figcaption>Posición</figcaption>${drawn[0]}</figure></div>`
-        : `<div class="frames">
+      /* La leyenda (la silueta gris, la flecha, el punto de la cara) explica el
+         dibujo de palitos. En una ilustración no hay nada de eso que explicar,
+         así que ahí no se muestra. */
+      const conImg = hayImg(e.d);
+      if(drawn.length===1){
+        h+=`<div class="frames one"><figure class="frame${conImg?' ilu':''}">
+          <figcaption>${conImg?'La postura':'Posición'}</figcaption>${drawn[0]}</figure></div>`;
+      }else if(conImg){
+        /* Los cuadros van numerados y nada más: son los tres momentos de un
+           recorrido que se repite, y cuál es "el inicio" depende de dónde
+           partas, no del dibujo. */
+        h+=`<div class="frames tres${imgAncha(e.d)?' apilada':''}">${drawn.map((sv,i)=>
+          `<figure class="frame ilu"><figcaption>${i+1}</figcaption>${sv}</figure>`).join('')}</div>
+        <p class="pieilu">Tres momentos del recorrido.</p>`;
+      }else{
+        h+=`<div class="frames">
         <figure class="frame"><figcaption>1 · Inicio</figcaption>${drawn[0]}</figure>
         <figure class="frame"><figcaption>2 · Final</figcaption>${drawn[1]}</figure>
       </div>
@@ -1234,6 +1286,7 @@ function vHoy(){
         <span><i style="background:var(--rust)"></i>recorrido del movimiento</span>
         <span><i style="background:var(--ink);width:6px;height:6px;border-radius:99px"></i>hacia dónde mira</span>
       </div>`;
+      }
     }
     h+=`<p class="cue">${e.c}</p>`;
     /* En el cardio la modalidad la eliges tú, así que un video de "a tu
@@ -1676,6 +1729,14 @@ function vAjustes(){
   <div class="card">
     <button class="act ghost" id="btnReset">Borrar todos mis registros</button>
     <p class="lede" style="margin:10px 0 0">Elimina entrenamientos, comidas y medidas de este dispositivo. No se puede deshacer.</p>
+  </div>
+  <h2>Créditos</h2>
+  <div class="card">
+    <p class="lede" style="margin:0">Las ilustraciones de los ejercicios vienen de
+      <a href="https://github.com/bryllim/workout-guide" target="_blank" rel="noopener">Workout Guide</a>,
+      de Bryl Lim, construida sobre <a href="https://github.com/everkinetic/data" target="_blank" rel="noopener">Everkinetic</a>,
+      bajo licencia <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
+      Acá se les cambió el color y se les redondearon los números de los trazos; nada más.</p>
   </div>`;
 }
 
