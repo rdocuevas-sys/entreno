@@ -58,3 +58,16 @@ Dos ejercicios NO usan estas ilustraciones y conservan el dibujo propio: el
 **pull-over**, que no existe en la biblioteca, y la **elevación de talones**,
 porque todas sus versiones traen una máquina o una barra al hombro y acá se hace
 con mancuernas y sin rack.
+
+## Créditos del mapa muscular
+
+El cuerpo de frente y de espalda, partido en polígonos por músculo, viene de
+[react-body-highlighter](https://github.com/giavinh79/react-body-highlighter),
+de Gia Vinh Lam, licencia MIT. De ahí solo se extrajeron los puntos de los
+polígonos; el componente de React no se usa.
+
+**Qué músculo trabaja cada ejercicio está escrito a mano en `ejercicios.js`**
+(`EJ_MUS`), no sale de ninguna biblioteca: el dato que trae la biblioteca de
+ilustraciones describe *su* ejercicio y no el nuestro — su press de banca es de
+agarre cerrado y declara «tríceps» como músculo principal, cuando el de este
+plan es de agarre normal y manda el pecho.
