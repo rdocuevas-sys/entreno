@@ -51,13 +51,25 @@ Licencia: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 **Cambios respecto del original:** el color pasó de blanco fijo a `currentColor`
 (para que tomen el color de la app y sirvan igual en modo claro y oscuro), y los
 números de cada trazo se redondearon a enteros con SVGO (`floatPrecision: 0`),
-que a este tamaño no se nota y baja el peso de 1,7 MB a 411 KB. Los trazos así
-adaptados quedan bajo la misma licencia CC BY-SA 4.0.
+que a este tamaño no se nota y baja el peso a la cuarta parte: los 35 ejercicios
+dibujados ocupan 489 KB en vez de los cerca de 2 MB que pesan los SVG originales.
+Los trazos así adaptados quedan bajo la misma licencia CC BY-SA 4.0.
 
 Dos ejercicios NO usan estas ilustraciones y conservan el dibujo propio: el
 **pull-over**, que no existe en la biblioteca, y la **elevación de talones**,
 porque todas sus versiones traen una máquina o una barra al hombro y acá se hace
 con mancuernas y sin rack.
+
+El **remo a una mano con kettlebell** del día F comparte el dibujo del remo con
+mancuerna del día B: es literalmente el mismo asset de la biblioteca
+(`one-arm-dumbbell-row`) y el movimiento es el mismo, así que no se embutió dos
+veces. El historial sí es aparte, porque los registros se guardan por nombre.
+
+De los ejercicios del día F, solo el **swing** y el **peso muerto rumano** existen
+dibujados con kettlebell en la biblioteca; el resto usa el dibujo con mancuerna del
+mismo movimiento, y el texto del ejercicio avisa en qué se diferencia el dibujo de
+lo que hay que hacer. **Clean, snatch, halo y turkish get-up no existen en la
+biblioteca** — por eso no están en el plan.
 
 ## Créditos del mapa muscular
 

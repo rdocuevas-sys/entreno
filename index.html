@@ -173,6 +173,10 @@
   .mus-txt i{width:9px;height:9px;border-radius:2px;flex:0 0 auto;position:relative;top:1px}
   .mus-p{background:var(--pine)}
   .mus-s{background:var(--pine-md)}
+  /* el mapa del día entero va arriba de la lista, separado de los ejercicios */
+  .mus-dia{display:flex;gap:14px;align-items:center;
+           border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+           padding:10px 0;margin:14px 0 2px}
   /* margin:0 NO es decorativo: el navegador le pone 1em/40px a todo <figure>,
      y con tres columnas en un teléfono esos 80 px se comían la mitad del cuadro
      — el dibujo quedaba en 55 px dentro de una celda de 139. */
@@ -671,8 +675,28 @@ function imgAncha(k){
    Va SIEMPRE con los nombres escritos al lado: un polígono de color sin
    nombre no enseña qué músculo es. */
 function mapaMus(k){
-  if(!k || typeof EJ_MUS === 'undefined' || typeof CUERPO === 'undefined') return '';
-  const m = EJ_MUS[k]; if(!m) return '';
+  if(!k || typeof EJ_MUS === 'undefined') return '';
+  return dibujoMus(EJ_MUS[k], 'Qué trabaja', 'mus');
+}
+/* La suma del DÍA entero, arriba de la lista: qué te toca hoy de un vistazo,
+   sin abrir los ejercicios uno por uno.
+   Un músculo que es principal en CUALQUIER ejercicio del día es principal del
+   día: si algo se entrena directo aunque sea una sola vez, el día lo entrena
+   directo, y degradarlo a "ayuda" porque los otros ocho no lo tocan diría lo
+   contrario de lo que pasa. El cardio y el suelo pélvico no tienen entrada en
+   EJ_MUS, así que se quedan fuera solos. */
+function mapaMusDia(id){
+  const p = new Set(), s = new Set();
+  (PLAN[id]||[]).forEach(e=>{
+    const m = (typeof EJ_MUS!=='undefined' && EJ_MUS[e.d]) || null;
+    if(!m) return;
+    (m.p||[]).forEach(x=>p.add(x));
+    (m.s||[]).forEach(x=>s.add(x));
+  });
+  return dibujoMus({p:[...p], s:[...s].filter(x=>!p.has(x))}, `Todo el día ${id}`, 'mus mus-dia');
+}
+function dibujoMus(m, titulo, cls){
+  if(!m || typeof CUERPO === 'undefined') return '';
   const pri = new Set(m.p), sec = new Set(m.s);
   const vista = v => {
     let g = '';
@@ -689,10 +713,10 @@ function mapaMus(k){
   const nom = l => [...new Set(l.map(x=>MUS_NOMBRE[x]).filter(Boolean))].join(', ');
   const p1 = nom(m.p), p2 = nom(m.s);
   if(!p1 && !p2) return '';
-  return `<div class="mus">
+  return `<div class="${cls}">
     <div class="mus-cuerpos">${vista('anterior')}${vista('posterior')}</div>
     <div class="mus-txt">
-      <p class="mus-h">Qué trabaja</p>
+      <p class="mus-h">${titulo}</p>
       ${p1?`<p><i class="mus-p"></i><b>${p1}</b></p>`:''}
       ${p2?`<p><i class="mus-s"></i>${p2}<span class="prev" style="margin-left:4px">(ayudan)</span></p>`:''}
     </div>
@@ -712,8 +736,15 @@ const DAYS = [
   {id:'B', name:'Tirón + lumbar',sub:'Espalda · lumbares · bíceps'},
   {id:'C', name:'Piernas + core',sub:'Cuádriceps · glúteo · core'},
   {id:'D', name:'Full body',     sub:'Cuerpo completo + cardio largo'},
-  {id:'E', name:'Cardio + core', sub:'Opcional · zona media'}
+  {id:'E', name:'Cardio + core', sub:'Opcional · zona media'},
+  /* El F queda FUERA de la rueda A-E a propósito: es un día suelto que haces
+     cuando quieras, y entrenarlo no adelanta la rotación — si hacer kettlebell
+     un martes te corriera el turno, te saltarías el día de piernas. */
+  {id:'F', name:'Kettlebell',    sub:'Abdomen · brazos · suelto', opt:1}
 ];
+/* La rueda que sigue el "hoy te toca el día X" son solo los días fijos. */
+const DIAS_ROT = DAYS.filter(d=>!d.opt);
+const esDiaSuelto = id => !!(DAYS.find(d=>d.id===id)||{}).opt;
 
 const PLAN = {
 A:[
@@ -803,17 +834,53 @@ E:[
   c:'Codo hacia la rodilla contraria, lento. No tires del cuello con las manos.'},
  {n:'Puente de glúteo',s:3,r:'15',rest:'30 s',d:'puente',
   c:'Empuja con los talones, aprieta el glúteo arriba un segundo. Cierra el circuito con esto.'}
+],
+
+/* ---- Día F: kettlebell, abdomen y brazos ----
+   Fuera de la rotación: lo haces el día que quieras y hacerlo no mueve la
+   rueda A-E. Salió de dos cosas suyas: que tiene una kettlebell de 10 y otra
+   de 20, y que "en ninguna de las rutinas que tenemos me queda doliendo el
+   abdominal". Lo segundo tiene una parte cierta y una falsa. La falsa: las
+   agujetas no miden el estímulo, y su core es todo isométrico —plancha, dead
+   bug, hollow, bird dog— que por diseño casi no las produce. La cierta, y es
+   la que arregla este día: NO TENÍA NADA de abdomen con carga progresiva. Ni
+   flexión cargada, ni rotación cargada, ni forma de subir el peso.
+   Por eso los cuatro bloques de abdomen no se pisan entre ellos: flexión
+   cargada (crunch), abdomen bajo (elevación de piernas), rotación cargada
+   (giro ruso) y anti-inclinación lateral (maletero).
+   De pierna lleva solo el swing, y es a propósito: pidió que este día no
+   tuviera más pierna ni más empuje, que ya van sobrados en A, C y D. */
+F:[
+ {n:'Swing ruso con kettlebell a dos manos',s:4,r:'15',rir:2,rest:'60 s',d:'swingKB',
+  c:'Es una BISAGRA de cadera, no una sentadilla: la rodilla apenas se dobla y lo que se va hacia atrás es el trasero. La pesa no la levantan los brazos — los brazos son la cuerda y nada más; la lanza el golpe de cadera al pararte, y sube sola hasta la altura del pecho. Arriba aprietas glúteo y abdomen un instante y la dejas caer, guiándola entre las piernas por detrás de las rodillas. Exhala fuerte en cada empuje y no aguantes el aire. Ruso quiere decir hasta el pecho y no sobre la cabeza: la versión americana no te da nada más y le pide al hombro un rango que no necesitas. Si la espalda baja se te redondea al agacharte, se acabó la serie. Es el único trabajo de pierna y cadera del día, y de paso te obliga a apretar el abdomen 15 veces seguidas.'},
+ {n:'Crunch con kettlebell en el pecho',s:4,r:'10-12',rir:1,rest:'60 s',d:'crunchKB',
+  c:'Este es el que faltaba y por el que existe este día: es tu único abdominal CON CARGA y con manera de subirla. Acostado, rodillas dobladas, la kettlebell abrazada contra el pecho. Sube enrollando la columna de a poco —primero la cabeza, después los hombros, después la espalda alta— hasta despegar los omóplatos, y baja en 3 segundos sin soltarte de golpe. No es un sit-up: la espalda baja no se despega del suelo en ningún momento. Parte con la de 10; cuando saques 12 limpias con RIR 1, pasa a la de 20. Y cuando la de 20 también te quede corta, no busques otra pesa — súbela por detrás de la cabeza con los brazos estirados: la palanca se alarga y pesa mucho más sin cambiar de kettlebell.'},
+ {n:'Elevación de piernas acostado',s:3,r:'12-15',rest:'45 s',d:'piernasArriba',
+  c:'Acostado, manos bajo el glúteo con las palmas contra el suelo: esa es la parte que todo el mundo se salta y es justo la que te cuida la lumbar. La espalda baja va pegada al suelo TODO el rato. Sube las piernas casi rectas hasta la vertical y bájalas en 3 segundos hasta un palmo del suelo, sin tocarlo. El momento en que la lumbar se despega es el momento en que dejaste de trabajar el abdomen y empezaste a trabajar la espalda: si te pasa antes de terminar la serie, dobla un poco las rodillas y baja menos. Acortar el recorrido es mejor que arquearse.'},
+ {n:'Press de tríceps sobre la cabeza con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'tricepsCabeza',
+  c:'De pie o sentado en la banca, la kettlebell agarrada por los cuernos —los dos lados del asa— con las dos manos y subida sobre la cabeza. Codos apuntando al techo y pegados a las orejas: solo se mueve el antebrazo. Baja la pesa por detrás de la nuca todo lo que puedas y sube estirando el codo. Es distinto del press francés del día A: acá el brazo está vertical, así que el tríceps se estira entero, y esa posición estirada bajo carga es la que deja agujetas. Aprieta glúteo y abdomen para que la lumbar no se arquee con el peso arriba. Parte con la de 10. Ojo con el dibujo: ahí la pesa es una mancuerna tomada por la punta; tú agarras la kettlebell por los cuernos, pero la postura y el recorrido son exactamente esos.'},
+ {n:'Curl a dos manos con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'curlKB',
+  c:'Los 20 kg de la kettlebell son más carga de la que puedes ponerle a un curl: tus mancuernas topan en 15. Agárrala por el asa con las dos manos, codos pegados al costado y quietos, y sube sin balancear el tronco. La campana cuelga por debajo de las manos, así que te tira hacia adelante más que una mancuerna y te obliga a fijar el codo de verdad. Baja en 2 segundos. Ojo con el dibujo: ahí van dos mancuernas, una en cada mano y alternando; tú llevas UNA kettlebell con las dos manos juntas y subes las dos a la vez.'},
+ {n:'Remo a una mano con kettlebell',s:3,r:'12-15 x lado',rir:1,rest:'60 s',d:'remoDB',
+  c:'Rodilla y mano apoyadas en la banca, la otra pierna firme en el suelo. Tira la kettlebell hacia la cadera y no hacia el hombro, y aprieta el omóplato al final. Con la de 20 vas más pesado que con tus mancuernas de 15, así que cuida que la espalda no rote para ayudarte a subirla. Es el único tirón del día y de paso te carga el bíceps. Lleva historial propio, aparte del remo con mancuerna del día B: son pesos distintos y compararlos no diría nada.'},
+ {n:'Giro ruso con kettlebell',s:3,r:'16 total',rest:'45 s',d:'giroRuso',
+  c:'Sentado, torso echado hacia atrás unos 45°, la kettlebell con las dos manos a la altura del pecho. Gira el tronco de lado a lado tocando el suelo al costado de la cadera; 16 son 8 por lado. LOS TALONES SE QUEDAN EN EL SUELO: levantar los pies se ve mejor pero te carga la espalda baja, y la tuya es lo más flojo que tienes. Gira desde las costillas y no desde los brazos — si la pesa se mueve y el torso no, no estás haciendo nada. Lento, y con la de 10: acá no se busca peso. Es tu única rotación cargada de la semana.'},
+ {n:'Paseo del maletero con kettlebell',s:3,r:'45 s x lado',rest:'45 s',d:'maletero',
+  c:'La kettlebell en UNA mano, colgando al costado como una maleta, y caminas. Eso es todo. El trabajo está en no inclinarte: el peso te tira para un lado y el costado contrario tiene que aguantar para que los hombros queden parejos. Hombros atrás, mirada al frente, pasos normales. 45 segundos con un brazo, cambias y 45 con el otro, y recién ahí descansas. Si no tienes dónde caminar, quédate parado aguantándola: sirve casi igual. Carga oblicuos, antebrazo y agarre — el agarre va a ser lo primero que te falle, y eso también es entrenarlo. OJO CON EL DIBUJO: ahí lleva DOS pesas, una en cada mano, y así el ejercicio no sirve para nada de lo que buscamos — con las dos manos cargadas los pesos se anulan y el costado no tiene que aguantar nada. Tú vas con UNA sola, y el otro brazo colgando libre.'},
+ {n:'CARDIO — a tu elección',cardio:1,s:1,r:'10 min',sug:'Caminata rápida',rest:'—',
+  c:'Suave, de cierre. Este día ya te dejó el abdomen y los antebrazos cocidos, no busques nada más acá. Ritmo conversacional, y anota lo que hiciste de verdad.'}
 ]
 };
 
 /* El cardio ya no lo fija el plan: el plan fija los MINUTOS y la intensidad,
    que es lo que produce el efecto, y la máquina la elige él según lo que
-   tenga a mano ese día. Por eso los 5 días guardan el mismo bloque y lo que
-   se registra es la modalidad elegida, no la prescrita. */
+   tenga a mano ese día. Por eso todos los días guardan el mismo bloque y lo
+   que se registra es la modalidad elegida, no la prescrita. */
 const CARDIOS = ['Trotadora','Trote afuera','Caminata rápida','Bicicleta','Bicicleta estática',
                  'Elíptica','Remo','Cuerda','Escaleras','Natación','Otro'];
 
-/* Suelo pélvico. Va en los CINCO días porque el protocolo es diario, no por
+/* Suelo pélvico. Va en TODOS los días (Object.keys, así entra solo en los
+   que se agreguen después) porque el protocolo es diario, no por
    grupo muscular — y en los días que no entrena, el propio texto se lo dice.
    Sin dibujo a propósito: es una contracción interna, un monigote no enseña
    nada acá; lo enseña el texto. Y sin columna de peso, porque no hay peso. */
@@ -1167,6 +1234,20 @@ function grafico(puntos, opt){
   const px=v=> mL + (x1===x0?0.5:(v-x0)/(x1-x0))*(W-mL-mR);
   const py=v=> mT + (1-(v-y0)/(y1-y0))*(H-mT-mB);
   const pts=P.map(p=>[px(fechaMs(p.f)), py(nz(p.v))]);
+  /* ---- media móvil ----
+     Pesándose casi a diario la línea cruda es un serrucho de ±1 kg de agua, y
+     lo que hay que poder leer es la tendencia, no el pesaje de esta mañana.
+     ⚠La ventana se corre sobre la FECHA (masDias) y NUNCA restando
+     milisegundos: el 6 de septiembre Chile cambia la hora y restar
+     7×86.400.000 ms cruzando ese domingo corre el borde una hora y deja fuera
+     (o mete de más) el registro de un día entero.
+     Con menos de 4 pesajes no se dibuja: la media de dos puntos no es una
+     tendencia, es la misma línea con otro nombre. */
+  const MM = (opt.media && P.length>=4) ? P.map(p=>{
+    const desde = masDias(p.f, -(opt.media-1));
+    const v = P.filter(q=>q.f>=desde && q.f<=p.f).map(q=>nz(q.v));
+    return [px(fechaMs(p.f)), py(v.reduce((a,b)=>a+b,0)/v.length)];
+  }) : null;
   const primero=ys[0], ultimo=ys[ys.length-1];
   const dif=+(ultimo-primero).toFixed(1);
   const bien = dif===0 ? null : (opt.bajarEsBueno ? dif<0 : dif>0);
@@ -1177,17 +1258,21 @@ function grafico(puntos, opt){
       <line x1="${mL}" y1="${py(primero).toFixed(1)}" x2="${W-mR}" y2="${py(primero).toFixed(1)}"
             stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
       <polyline points="${pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}"
-                fill="none" stroke="var(--pine)" stroke-width="2.5"
+                fill="none" stroke="var(${MM?'--pine-md':'--pine'})" stroke-width="${MM?1.5:2.5}"
                 stroke-linecap="round" stroke-linejoin="round"/>
+      ${MM?`<polyline points="${MM.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}"
+                fill="none" stroke="var(--pine)" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"/>`:''}
       ${pts.map((p,i)=>{const u=i===pts.length-1;
         /* con pesaje diario los puntos se pisan unos con otros: pasado cierto
            número queda solo la línea y el punto de hoy */
         if(!u && pts.length>20) return '';
         return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${u?4:2.6}"
-          fill="${u?'var(--pine)':'#fff'}" stroke="var(--pine)" stroke-width="2"/>`;}).join('')}
+          fill="${u?'var(--pine)':'#fff'}" stroke="var(${u||!MM?'--pine':'--pine-md'})" stroke-width="2"/>`;}).join('')}
       <text x="${mL}" y="${H-4}" font-size="10" font-family="monospace" fill="var(--slate)">${fechaCorta(P[0].f)} · ${coma(primero)}</text>
       <text x="${W-mR}" y="${H-4}" font-size="10" font-family="monospace" fill="var(--slate)" text-anchor="end">${fechaCorta(P[P.length-1].f)} · ${coma(ultimo)}</text>
     </svg>
+    ${MM?`<p class="pieilu" style="margin:1px 0 0">Línea gruesa: la media de ${opt.media} días, que es la que hay que mirar. La clara y los puntos son cada pesaje.</p>`:''}
   </div>`;
 }
 
@@ -1235,12 +1320,23 @@ function ultimaSesion(){
   const f = con.map(x=>x.f).sort().pop();
   return {f, dia: con.filter(x=>x.f===f)[0].dia};
 }
+/* La última sesión de un día de la RUEDA, que no es lo mismo que la última
+   sesión a secas: el día F es suelto y entrenarlo no puede correr el turno.
+   Si contara, hacer kettlebell un martes te saltaría el día de piernas. */
+function ultimaSesionRot(){
+  const fijos = new Set(DIAS_ROT.map(d=>d.id));
+  const con = S.fuerza.filter(x=>nz(x.reps)>0 && fijos.has(x.dia));
+  if(!con.length) return null;
+  const f = con.map(x=>x.f).sort().pop();
+  return {f, dia: con.filter(x=>x.f===f)[0].dia};
+}
 function diaSugerido(){
   const u = ultimaSesion();
-  if(!u) return 'A';
-  if(u.f===hoy()) return u.dia;          /* si hoy ya empezaste, quédate en ese */
-  const i = DAYS.findIndex(d=>d.id===u.dia);
-  return i<0 ? 'A' : DAYS[(i+1)%DAYS.length].id;
+  if(u && u.f===hoy()) return u.dia;     /* si hoy ya empezaste, quédate en ese */
+  const r = ultimaSesionRot();
+  if(!r) return 'A';
+  const i = DIAS_ROT.findIndex(d=>d.id===r.dia);
+  return i<0 ? 'A' : DIAS_ROT[(i+1)%DIAS_ROT.length].id;
 }
 function diasHechosSemana(){
   const sem = semanaHoy();
@@ -1253,7 +1349,8 @@ function avisoDelDia(){
   const dias = Math.round((fechaMs(hoy())-fechaMs(u.f))/86400000);
   const cuando = dias===1 ? 'ayer' : dias<=0 ? 'recién' : `hace ${dias} días`;
   const descanso = dias>=5 ? ` Llevas ${dias} días sin entrenar: baja un poco la carga en el primer ejercicio.` : '';
-  return `Última sesión ${cuando} (${fechaCorta(u.f)}), día ${u.dia}. Hoy te toca el <b>día ${diaSugerido()}</b>.${descanso}`;
+  const suelto = esDiaSuelto(u.dia) ? ' (el suelto)' : '';
+  return `Última sesión ${cuando} (${fechaCorta(u.f)}), día ${u.dia}${suelto}. Hoy te toca el <b>día ${diaSugerido()}</b>.${descanso}`;
 }
 function todaySet(ej,i){
   return S.fuerza.find(x=>x.f===hoy() && x.ej===ej && x.serie===i) || {};
@@ -1293,6 +1390,7 @@ function vHoy(){
       <b>Día ${d.id} · ${d.name}${ok?' ✓':''}</b><small>${d.sub}</small></button>`;
   });
   h+=`</div>`;
+  h+= mapaMusDia(dia);
 
   list.forEach((e,idx)=>{
     const drawn = frames(e.d);
@@ -1547,7 +1645,7 @@ function vMedidas(){
 
   h+=`<h2>Cómo vas</h2><div class="card">
     ${grafico(S.medidas.map(x=>({f:x.f,v:x.peso})),
-        {titulo:'Peso', unidad:'kg', bajarEsBueno:true,
+        {titulo:'Peso', unidad:'kg', bajarEsBueno:true, media:7,
          vacio:'Con dos pesajes aparece la curva. En recomposición es la línea, no el número del día.'})}
     ${grafico(S.medidas.map(x=>({f:x.f,v:x.cint})),
         {titulo:'Cintura (ombligo)', unidad:'cm', bajarEsBueno:true,
