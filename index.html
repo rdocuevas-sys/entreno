@@ -2236,6 +2236,62 @@ function vMedidas(){
    guardado en alguna parte: eso la app no puede saberlo, y el texto lo dice
    así en vez de prometer algo que no comprueba. */
 const DIAS_RESP = 14;
+function marcarRespaldado(){ S.cfg.resp = hoy(); saveNow(); }
+/* El nombre lleva la fecha: en Archivos quedan uno al lado del otro y se ve
+   cuál es el último sin abrir ninguno. */
+const nombreRespaldo = () => `entreno-${hoy()}.json`;
+
+/* ---- guardar el respaldo como ARCHIVO ----
+   Copiar y pegar el JSON deja de funcionar solo: un año de uso son 1,2 MB de
+   texto, que no se seleccionan a mano en un teléfono ni caben en un correo
+   escrito. Así que el respaldo pasa a ser un archivo.
+
+   Se intenta en tres escalones, de mejor a peor, y NUNCA se marca como
+   respaldado algo que no llegó a guardarse:
+   1. La hoja de compartir del teléfono. Es la única puerta a iCloud Drive que
+      tiene una página web en iPhone — no existe API para escribir ahí sola.
+   2. La descarga directa, para el computador y para Android.
+   3. El texto a la vista para copiarlo, que funciona siempre. */
+async function guardarRespaldo(){
+  /* el JSON se arma ANTES de marcar nada: el archivo que se lleva no debe
+     venir diciendo que ya estaba respaldado */
+  const json = JSON.stringify(S);
+  const nombre = nombreRespaldo();
+  let archivo = null;
+  try{ archivo = new File([json], nombre, {type:'application/json'}); }catch(e){}
+
+  if(archivo && navigator.canShare && navigator.canShare({files:[archivo]})){
+    try{
+      await navigator.share({files:[archivo], title:'Respaldo de entrenamiento'});
+      marcarRespaldado(); render();
+      toast('Guardado — elígelo en iCloud Drive, no en «En mi iPhone»');
+      return;
+    }catch(e){
+      /* ⚠Cancelar NO es respaldar. Marcarlo acá dejaría el aviso apagado dos
+         semanas por un respaldo que nunca existió, que es peor que no avisar:
+         te haría confiar en algo que no está. */
+      if(e && e.name==='AbortError'){ toast('Cancelado — no se guardó nada'); return; }
+      /* cualquier otro fallo cae al escalón siguiente en vez de dejarte sin salida */
+    }
+  }
+
+  try{
+    const url = URL.createObjectURL(new Blob([json], {type:'application/json'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    marcarRespaldado(); render();
+    toast(`${nombre} descargado — guárdalo en iCloud Drive`);
+    return;
+  }catch(e){}
+
+  /* último recurso: el texto. No se marca como respaldado hasta que lo copie
+     con el otro botón. */
+  const o=document.getElementById('respOut');
+  if(o){ o.value=json; o.classList.remove('hide'); o.select(); }
+  toast('Este navegador no deja guardar archivos — cópialo a mano');
+}
 function avisoRespaldo(){
   const fechas = [...S.fuerza,...S.cardio,...S.comida,...S.medidas,...(S.alimentos||[])]
     .map(x=>x.f).filter(f=>fechaMs(f)).sort();
@@ -2261,7 +2317,7 @@ function avisoRespaldoHTML(){
   const txt = a.estado==='nunca'
     ? `<b>Nunca has guardado un respaldo.</b> Llevas ${a.desde===0?'menos de un día':a.desde+(a.desde===1?' día':' días')} de registros que solo existen en este teléfono.`
     : `<b>Hace ${a.dias} días que no respaldas</b>, y desde entonces anotaste cosas nuevas.`;
-  return `<div class="aviso-resp">${txt} Toca <b>Datos completos (JSON)</b>, copia el texto y guárdalo donde quieras — un correo a ti mismo basta. Si se borran los datos del navegador o cambias de teléfono, sin eso no hay vuelta atrás.</div>`;
+  return `<div class="aviso-resp">${txt} Toca <b>Guardar respaldo</b> y elige <b>Archivos → iCloud Drive</b>. Son dos toques. Si se borran los datos del navegador o cambias de teléfono, sin eso no hay vuelta atrás.</div>`;
 }
 function weekAgg(w){
   const f=S.fuerza.filter(x=>semanaDe(x.f)===w);
@@ -2365,21 +2421,33 @@ function vResumen(){
     h+=`</div>`;
   }
 
-  h+=`<h2>Exportar y respaldar</h2>
-  <p class="lede">El <b>resumen</b> es para pegármelo en el chat y ajustar el plan. El <b>JSON</b> es tu respaldo: es lo único que te salva si pierdes el teléfono.</p>
+  h+=`<h2>Respaldar</h2>
+  <p class="lede">Guarda el archivo y <b>elige iCloud Drive</b>, no «En mi iPhone»: ahí sobrevive aunque pierdas el teléfono. Guardado solo en el teléfono te cubre igual si borras los datos de Safari o reinstalas la app, que es como esto se pierde casi siempre.</p>
   <div class="card">
-    <button class="act" id="btnExp">Generar resumen</button>
-    <button class="act ghost" id="btnJson" style="margin-left:8px">Datos completos (JSON)</button>
-    <textarea id="expOut" rows="10" class="hide" style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
+    <button class="act" id="btnResp">Guardar respaldo</button>
+    <button class="act ghost" id="btnJson" style="margin-left:8px">Copiarlo a mano</button>
+    <textarea id="respOut" rows="6" class="hide" style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
     ${avisoRespaldoHTML()}
   </div>
+
+  <h2>Exportar para el chat</h2>
+  <p class="lede">Copia este texto y pégamelo para que analicemos la semana y ajustemos cargas y calorías. <b>No es un respaldo</b>: es el resumen, no tus datos.</p>
+  <div class="card">
+    <button class="act ghost" id="btnExp">Generar resumen</button>
+    <textarea id="expOut" rows="10" class="hide" style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
+  </div>
   <h2>Restaurar</h2>
-  <p class="lede">Si cambiaste de teléfono o se borraron los datos del navegador, pega acá el respaldo JSON que guardaste antes.</p>
+  <p class="lede">Si cambiaste de teléfono o se borraron los datos del navegador, carga acá el archivo que guardaste.</p>
   <div class="card">
     <button class="act ghost" id="btnImp">Restaurar respaldo</button>
     <div id="impBox" class="hide" style="margin-top:12px">
-      <textarea id="impIn" rows="6" placeholder="Pega aquí el JSON del respaldo" style="font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
-      <button class="act" id="btnImpGo" style="margin-top:8px">Cargar estos datos</button>
+      <input type="file" id="impFile" accept="application/json,.json" class="hide">
+      <button class="act" id="btnFile">Elegir el archivo…</button>
+      <p class="prev" style="margin:9px 0 12px">En el iPhone: <b>Examinar → iCloud Drive</b>, y busca el <code>entreno-…json</code> más reciente. El control de archivos del navegador se ve distinto en cada teléfono; el que manda es el tuyo.</p>
+      <details><summary class="lnk">o pegar el texto a mano</summary>
+        <textarea id="impIn" rows="6" placeholder="Pega aquí el JSON del respaldo" style="margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
+        <button class="act" id="btnImpGo" style="margin-top:8px">Cargar estos datos</button>
+      </details>
     </div>
   </div>`;
   return h;
@@ -2615,16 +2683,20 @@ document.addEventListener('click',e=>{
   }
   if(b.id==='btnExp'){ const o=document.getElementById('expOut');
     o.value=expText(); o.classList.remove('hide'); o.select(); toast('Listo — copia y pégalo en el chat'); return; }
+  if(b.id==='btnResp'){ guardarRespaldo(); return; }
   if(b.id==='btnJson'){
     /* El JSON se arma ANTES de marcar la fecha, para que el respaldo que se
        lleva no venga diciendo que ya estaba respaldado. Después se redibuja,
        que apaga el aviso y la marca de la pestaña, y recién ahí se rellena el
        cuadro: render() lo reconstruye vacío. */
     const json = JSON.stringify(S);
-    S.cfg.resp = hoy(); saveNow(); render();
-    const o = document.getElementById('expOut');
+    marcarRespaldado(); render();
+    const o = document.getElementById('respOut');
     o.value = json; o.classList.remove('hide'); o.select();
     toast('Cópialo y guárdalo — es tu respaldo'); return; }
+  /* el input de archivo va oculto y lo dispara este botón: el control nativo
+     se ve de una forma distinta en cada navegador y trunca su propio texto */
+  if(b.id==='btnFile'){ const i=document.getElementById('impFile'); if(i) i.click(); return; }
   if(b.id==='btnImp'){ document.getElementById('impBox').classList.toggle('hide');
     document.getElementById('impIn').focus(); return; }
   if(b.id==='btnImpGo'){ importar(); return; }
@@ -2663,8 +2735,12 @@ document.addEventListener('click',e=>{
 });
 
 /* ---- restaurar respaldo ---- */
-function importar(){
-  const txt = document.getElementById('impIn').value.trim();
+/* Con `texto` viene de un archivo elegido; sin él, de lo pegado a mano. Las
+   dos puertas pasan por la MISMA validación y la misma confirmación: si el
+   archivo se saltara los avisos, cargar el respaldo equivocado borraría todo
+   sin preguntar. */
+function importar(texto){
+  const txt = (texto!==undefined ? String(texto) : document.getElementById('impIn').value).trim();
   if(!txt){ toast('Pega primero el JSON del respaldo'); return; }
   let d;
   try{ d = JSON.parse(txt); }
@@ -2703,6 +2779,16 @@ function importar(){
    estás tocando a media edición — que es exactamente el defecto del 10-ago. */
 document.addEventListener('change',e=>{
   const el=e.target;
+  if(el.id==='impFile'){
+    const f = el.files && el.files[0];
+    if(!f) return;
+    f.text().then(t=>importar(t))
+     .catch(()=>toast('No pude leer ese archivo'))
+     /* el input se vacía SIEMPRE: si no, volver a elegir el mismo archivo no
+        dispara 'change' y parecería que el botón dejó de funcionar */
+     .finally(()=>{ el.value=''; });
+    return;
+  }
   /* ⚠Estos van en `change` y NO en `input`: cambiarlos redibuja la tabla, y
      redibujar desde el handler de `input` destruye el campo que se está
      escribiendo — es el defecto del 10-ago que borraba lo tecleado. */

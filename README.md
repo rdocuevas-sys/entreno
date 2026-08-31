@@ -20,17 +20,48 @@ borran los datos del navegador o se cambia de teléfono, se pierden. Por eso con
 guardar de vez en cuando el respaldo de **Resumen → Datos completos (JSON)**, que se
 recupera con **Resumen → Restaurar respaldo**.
 
-**El aviso de respaldo.** Como la app no tiene servidor a propósito, no puede respaldar
-sola; lo único que puede hacer es no dejar que se olvide. Al generar el JSON se anota el
-día en `cfg.resp`, y si pasan **14 días** *y además* hay registros posteriores a esa
-fecha, aparece un recuadro en Resumen y un punto en la pestaña. Las dos condiciones
-importan: sin datos nuevos no hay nada que perder y el aviso solo sería ruido, y un
-aviso que se ignora deja de ser un aviso.
+### El respaldo es un ARCHIVO, no texto copiado
 
-Lo que se marca es que **generó** el respaldo, no que lo haya guardado en alguna parte:
-eso la app no puede comprobarlo, y el texto lo dice así en vez de prometerlo. Por la
-misma razón el JSON se arma **antes** de estampar la fecha — si no, el archivo que se
-lleva vendría diciendo que ya estaba respaldado.
+Un año de uso medido —2.920 registros de comida, 6.525 series, 365 pesajes— pesa
+**1,2 MB**. Eso no se selecciona a mano en un teléfono ni cabe en un correo escrito, así
+que copiar y pegar el JSON dejaba de funcionar solo con el tiempo. **Guardar respaldo**
+produce `entreno-AAAA-MM-DD.json` (la fecha en el nombre para reconocer el último sin
+abrir ninguno) y lo entrega por tres escalones, de mejor a peor:
+
+1. **La hoja de compartir del teléfono** (`navigator.share` con `files`). Es la única
+   puerta que una página web tiene a **iCloud Drive** en iPhone: no existe API para
+   escribir ahí sola. Por eso «automático a iCloud» no es una opción que exista.
+2. **Descarga directa** (`<a download>`), para el computador y Android.
+3. **El texto a la vista** para copiarlo, que funciona siempre.
+
+⚠**Cancelar la hoja de compartir NO marca el respaldo.** Marcarlo ahí apagaría el aviso
+dos semanas por un respaldo que nunca existió, y eso es peor que no avisar: te hace
+confiar en algo que no está. Solo un `AbortError` se trata como cancelación; cualquier
+otro fallo cae al escalón siguiente en vez de dejar sin salida.
+
+**Dónde guardarlo importa.** En «En mi iPhone» cubre el caso más frecuente —borrar los
+datos de Safari, reinstalar la app— pero se va con el teléfono. En **iCloud Drive**
+cubre también perderlo. Es el mismo gesto, y el texto de la app lo dice.
+
+**Restaurar acepta el archivo**, con el mismo selector, y también pegar el texto. Las dos
+puertas pasan por la misma validación y la misma confirmación: si cargar un archivo se
+saltara los avisos, elegir el respaldo equivocado borraría todo sin preguntar. Un archivo
+que no es un respaldo se rechaza sin tocar nada.
+
+**El aviso.** Al guardar se anota el día en `cfg.resp`, y si pasan **14 días** *y además*
+hay registros posteriores a esa fecha, aparece un recuadro en Resumen y un punto en la
+pestaña. Las dos condiciones importan: sin datos nuevos no hay nada que perder y el aviso
+sería ruido, y un aviso que se ignora deja de ser un aviso.
+
+Lo que se marca es que **generó** el respaldo, no que esté a salvo en alguna parte: eso
+la app no puede comprobarlo, y el texto lo dice así en vez de prometerlo. Por la misma
+razón el JSON se arma **antes** de estampar la fecha — si no, el archivo que se lleva
+vendría diciendo que ya estaba respaldado.
+
+**Lo que sigue sin cubrir:** todo esto depende de que aprietes el botón. La app no tiene
+servidor a propósito, y sin uno no hay respaldo automático posible. La salida sería subir
+el JSON solo a un repositorio privado; no está hecho, y tiene su propio filo —si la app
+sube sola, un día que los datos se pierdan localmente también subiría el vacío.
 
 ## Archivos
 
