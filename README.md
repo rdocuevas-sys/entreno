@@ -52,7 +52,7 @@ Licencia: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 (para que tomen el color de la app y sirvan igual en modo claro y oscuro), y los
 números de cada trazo se redondearon a enteros con SVGO (`floatPrecision: 0`),
 que a este tamaño no se nota y baja el peso a la cuarta parte: los 35 ejercicios
-dibujados ocupan 489 KB en vez de los cerca de 2 MB que pesan los SVG originales.
+dibujados ocupan 436 KB en vez de los cerca de 2 MB que pesan los SVG originales.
 Los trazos así adaptados quedan bajo la misma licencia CC BY-SA 4.0.
 
 Dos ejercicios NO usan estas ilustraciones y conservan el dibujo propio: el
@@ -60,16 +60,22 @@ Dos ejercicios NO usan estas ilustraciones y conservan el dibujo propio: el
 porque todas sus versiones traen una máquina o una barra al hombro y acá se hace
 con mancuernas y sin rack.
 
-El **remo a una mano con kettlebell** del día F comparte el dibujo del remo con
-mancuerna del día B: es literalmente el mismo asset de la biblioteca
-(`one-arm-dumbbell-row`) y el movimiento es el mismo, así que no se embutió dos
-veces. El historial sí es aparte, porque los registros se guardan por nombre.
+### Ejercicios sin dibujo, a propósito
 
-De los ejercicios del día F, solo el **swing** y el **peso muerto rumano** existen
-dibujados con kettlebell en la biblioteca; el resto usa el dibujo con mancuerna del
-mismo movimiento, y el texto del ejercicio avisa en qué se diferencia el dibujo de
-lo que hay que hacer. **Clean, snatch, halo y turkish get-up no existen en la
-biblioteca** — por eso no están en el plan.
+Tres ejercicios del **día F** —*halo de rodillas*, *iron trident* y *marcha cargada
+a una mano*— **no existen en la biblioteca** y van deliberadamente sin ilustración:
+la app muestra un aviso («Este no tiene dibujo en la biblioteca») y el botón de
+video apunta a su nombre en inglés mediante el campo `busca`, porque buscándolos en
+español no se encuentran. **Sí conservan su mapa muscular**: eso se consigue
+poniéndolos en `EJ_MUS` pero no en `EJ_IMG`, la misma combinación que ya usaban el
+pull-over y la elevación de talones.
+
+Se prefirió eso antes que reutilizar un dibujo parecido. El `farmer-carry` de la
+biblioteca, por ejemplo, sale con **dos** mancuernas y sin marcha, y la marcha
+cargada es con **una**: copiar ese dibujo borraría el ejercicio, porque con las dos
+manos cargadas los pesos se anulan y el costado deja de trabajar. Donde sí se
+reutiliza un dibujo de otro implemento —el press de tríceps y el curl con
+kettlebell— **el texto del ejercicio avisa en qué se diferencia**.
 
 ## Créditos del mapa muscular
 

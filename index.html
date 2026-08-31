@@ -740,7 +740,7 @@ const DAYS = [
   /* El F queda FUERA de la rueda A-E a propósito: es un día suelto que haces
      cuando quieras, y entrenarlo no adelanta la rotación — si hacer kettlebell
      un martes te corriera el turno, te saltarías el día de piernas. */
-  {id:'F', name:'Kettlebell',    sub:'Abdomen · brazos · suelto', opt:1}
+  {id:'F', name:'Kettlebell',    sub:'Core · brazos · suelto', opt:1}
 ];
 /* La rueda que sigue el "hoy te toca el día X" son solo los días fijos. */
 const DIAS_ROT = DAYS.filter(d=>!d.opt);
@@ -836,37 +836,41 @@ E:[
   c:'Empuja con los talones, aprieta el glúteo arriba un segundo. Cierra el circuito con esto.'}
 ],
 
-/* ---- Día F: kettlebell, abdomen y brazos ----
+/* ---- Día F: core con kettlebell ----
    Fuera de la rotación: lo haces el día que quieras y hacerlo no mueve la
-   rueda A-E. Salió de dos cosas suyas: que tiene una kettlebell de 10 y otra
-   de 20, y que "en ninguna de las rutinas que tenemos me queda doliendo el
-   abdominal". Lo segundo tiene una parte cierta y una falsa. La falsa: las
-   agujetas no miden el estímulo, y su core es todo isométrico —plancha, dead
-   bug, hollow, bird dog— que por diseño casi no las produce. La cierta, y es
-   la que arregla este día: NO TENÍA NADA de abdomen con carga progresiva. Ni
-   flexión cargada, ni rotación cargada, ni forma de subir el peso.
-   Por eso los cuatro bloques de abdomen no se pisan entre ellos: flexión
-   cargada (crunch), abdomen bajo (elevación de piernas), rotación cargada
-   (giro ruso) y anti-inclinación lateral (maletero).
-   De pierna lleva solo el swing, y es a propósito: pidió que este día no
-   tuviera más pierna ni más empuje, que ya van sobrados en A, C y D. */
+   rueda A-E.
+   ⚠SEGUNDA VERSIÓN (31-ago). La primera la rechazó: "siento que es full body
+   y no está centrada en core o abdominal como te había pedido", y tenía razón
+   en el conteo — de 9 bloques solo 4 eran de abdomen. Salieron el swing, el
+   remo, el giro ruso y el paseo del maletero; se quedaron los dos de brazo
+   porque así lo eligió.
+   Tres vienen de un reel suyo (Iestyn Williams, @iest_willz86): kneeling halo,
+   iron trident y farmer carry march. 🔴Ninguno de los tres existe dibujado en
+   la biblioteca — no hay halo, no hay trident, y el farmer carry que hay sale
+   con DOS mancuernas y sin marcha. Van con `sinDibujo` y con el botón de video
+   apuntado a su nombre en inglés (`busca`), que es como se encuentran.
+   Las cinco casillas del core quedan cubiertas y sin pisarse: anti-extensión
+   (halo), anti-rotación cargada (trident), flexión cargada (crunch), abdomen
+   bajo (elevación de piernas) y anti-inclinación lateral en apoyo simple
+   (marcha cargada). */
 F:[
- {n:'Swing ruso con kettlebell a dos manos',s:4,r:'15',rir:2,rest:'60 s',d:'swingKB',
-  c:'Es una BISAGRA de cadera, no una sentadilla: la rodilla apenas se dobla y lo que se va hacia atrás es el trasero. La pesa no la levantan los brazos — los brazos son la cuerda y nada más; la lanza el golpe de cadera al pararte, y sube sola hasta la altura del pecho. Arriba aprietas glúteo y abdomen un instante y la dejas caer, guiándola entre las piernas por detrás de las rodillas. Exhala fuerte en cada empuje y no aguantes el aire. Ruso quiere decir hasta el pecho y no sobre la cabeza: la versión americana no te da nada más y le pide al hombro un rango que no necesitas. Si la espalda baja se te redondea al agacharte, se acabó la serie. Es el único trabajo de pierna y cadera del día, y de paso te obliga a apretar el abdomen 15 veces seguidas.'},
+ {n:'Halo de rodillas con kettlebell',s:4,r:'10',rest:'60 s',d:'halo',sinDibujo:1,
+  busca:'kneeling halo kettlebell exercise',
+  c:'De rodillas, las dos apoyadas y el cuerpo recto desde la rodilla hasta la cabeza — nada de sentarse sobre los talones. La kettlebell agarrada por los cuernos y boca abajo, a la altura del pecho. Das una vuelta completa alrededor de la cabeza, pegada al cráneo, y vuelves por el otro lado; 10 son 5 para cada sentido. Lo que entrena no es el hombro, es lo que NO se mueve: cuando la pesa pasa por detrás de la cabeza te tira hacia atrás, y el abdomen y el glúteo tienen que apretar para que la lumbar no se arquee. Si te vas de espaldas o se te sale la costilla, bajaste la guardia y ahí se acabó la serie. Estar de rodillas es a propósito: te saca las piernas de la ecuación y el trabajo no se puede escapar a otro lado. Con la de 10 sobra — acá no se busca peso, se busca que nada se mueva.'},
+ {n:'Iron trident con kettlebell',s:4,r:'10',rest:'60 s',d:'trident',sinDibujo:1,
+  busca:'iron trident kettlebell core exercise',
+  c:'Es el del reel que me mandaste, de Iestyn Williams. Sentado en el suelo, piernas estiradas y abiertas en V, pecho arriba y espalda recta — no echado hacia atrás. La kettlebell tomada por el asa. Una repetición son TRES toques: la apoyas en el suelo al costado de la cadera derecha, la levantas, la pasas entre las piernas y la apoyas ahí con una pausa, y la llevas al costado de la cadera izquierda. Y de vuelta. Va LENTO y apoyándola de verdad cada vez: si se convierte en un giro rápido de lado a lado dejaste de entrenar el core y empezaste a usar el impulso. Lo que trabaja es AGUANTAR la rotación, no hacerla. Empieza con la de 10, porque lo que se te va a cansar primero es la espalda baja sosteniendo el torso y la tuya es lo más flojo que tienes; cuando aguantes las 4 series con el pecho arriba de principio a fin, pasa a la de 20.'},
  {n:'Crunch con kettlebell en el pecho',s:4,r:'10-12',rir:1,rest:'60 s',d:'crunchKB',
-  c:'Este es el que faltaba y por el que existe este día: es tu único abdominal CON CARGA y con manera de subirla. Acostado, rodillas dobladas, la kettlebell abrazada contra el pecho. Sube enrollando la columna de a poco —primero la cabeza, después los hombros, después la espalda alta— hasta despegar los omóplatos, y baja en 3 segundos sin soltarte de golpe. No es un sit-up: la espalda baja no se despega del suelo en ningún momento. Parte con la de 10; cuando saques 12 limpias con RIR 1, pasa a la de 20. Y cuando la de 20 también te quede corta, no busques otra pesa — súbela por detrás de la cabeza con los brazos estirados: la palanca se alarga y pesa mucho más sin cambiar de kettlebell.'},
+  c:'Tu único abdominal con CARGA y con manera de subirla, que es justo lo que no tenías. Acostado, rodillas dobladas, la kettlebell abrazada contra el pecho. Sube enrollando la columna de a poco —primero la cabeza, después los hombros, después la espalda alta— hasta despegar los omóplatos, y baja en 3 segundos sin soltarte de golpe. No es un sit-up: la espalda baja no se despega del suelo en ningún momento. Parte con la de 10; cuando saques 12 limpias con RIR 1, pasa a la de 20. Y cuando la de 20 también te quede corta, no busques otra pesa — súbela por detrás de la cabeza con los brazos estirados: la palanca se alarga y pesa mucho más sin cambiar de kettlebell.'},
  {n:'Elevación de piernas acostado',s:3,r:'12-15',rest:'45 s',d:'piernasArriba',
-  c:'Acostado, manos bajo el glúteo con las palmas contra el suelo: esa es la parte que todo el mundo se salta y es justo la que te cuida la lumbar. La espalda baja va pegada al suelo TODO el rato. Sube las piernas casi rectas hasta la vertical y bájalas en 3 segundos hasta un palmo del suelo, sin tocarlo. El momento en que la lumbar se despega es el momento en que dejaste de trabajar el abdomen y empezaste a trabajar la espalda: si te pasa antes de terminar la serie, dobla un poco las rodillas y baja menos. Acortar el recorrido es mejor que arquearse.'},
+  c:'Acostado, manos bajo el glúteo con las palmas contra el suelo: esa es la parte que todo el mundo se salta y es justo la que te cuida la lumbar. La espalda baja va pegada al suelo TODO el rato. Sube las piernas casi rectas hasta la vertical y bájalas en 3 segundos hasta un palmo del suelo, sin tocarlo. El momento en que la lumbar se despega es el momento en que dejaste de trabajar el abdomen y empezaste a trabajar la espalda: si te pasa antes de terminar la serie, dobla un poco las rodillas y baja menos. Acortar el recorrido es mejor que arquearse. Es lo único del día que ataca el abdomen de abajo.'},
+ {n:'Marcha cargada a una mano',s:4,r:'12',rest:'45 s',d:'marchaCargada',sinDibujo:1,
+  busca:'farmer carry march single arm kettlebell',
+  c:'La kettlebell en UNA mano, colgando al costado como una maleta, y marchas en el sitio subiendo la rodilla hasta la altura de la cadera; 12 son 6 por pierna. Terminas, cambias de mano y repites — esa es una serie. Es el paseo del maletero con una vuelta de tuerca: al levantar una pierna te quedas en apoyo simple, y el costado tiene que trabajar mucho más para que la cadera no se te caiga hacia el lado libre. Hombros parejos y atrás, mirada al frente, y la rodilla sube LENTO: no es trotar en el sitio. Si te inclinas hacia el lado del peso, la pesa es mucho. Carga oblicuos, el glúteo de la pierna que apoya, antebrazo y agarre — el agarre va a ser lo primero que te falle, y eso también es entrenarlo. Si no tienes dónde pararte tranquilo, sirve igual apoyando la espalda en nada y marchando en un metro cuadrado.'},
  {n:'Press de tríceps sobre la cabeza con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'tricepsCabeza',
   c:'De pie o sentado en la banca, la kettlebell agarrada por los cuernos —los dos lados del asa— con las dos manos y subida sobre la cabeza. Codos apuntando al techo y pegados a las orejas: solo se mueve el antebrazo. Baja la pesa por detrás de la nuca todo lo que puedas y sube estirando el codo. Es distinto del press francés del día A: acá el brazo está vertical, así que el tríceps se estira entero, y esa posición estirada bajo carga es la que deja agujetas. Aprieta glúteo y abdomen para que la lumbar no se arquee con el peso arriba. Parte con la de 10. Ojo con el dibujo: ahí la pesa es una mancuerna tomada por la punta; tú agarras la kettlebell por los cuernos, pero la postura y el recorrido son exactamente esos.'},
  {n:'Curl a dos manos con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'curlKB',
   c:'Los 20 kg de la kettlebell son más carga de la que puedes ponerle a un curl: tus mancuernas topan en 15. Agárrala por el asa con las dos manos, codos pegados al costado y quietos, y sube sin balancear el tronco. La campana cuelga por debajo de las manos, así que te tira hacia adelante más que una mancuerna y te obliga a fijar el codo de verdad. Baja en 2 segundos. Ojo con el dibujo: ahí van dos mancuernas, una en cada mano y alternando; tú llevas UNA kettlebell con las dos manos juntas y subes las dos a la vez.'},
- {n:'Remo a una mano con kettlebell',s:3,r:'12-15 x lado',rir:1,rest:'60 s',d:'remoDB',
-  c:'Rodilla y mano apoyadas en la banca, la otra pierna firme en el suelo. Tira la kettlebell hacia la cadera y no hacia el hombro, y aprieta el omóplato al final. Con la de 20 vas más pesado que con tus mancuernas de 15, así que cuida que la espalda no rote para ayudarte a subirla. Es el único tirón del día y de paso te carga el bíceps. Lleva historial propio, aparte del remo con mancuerna del día B: son pesos distintos y compararlos no diría nada.'},
- {n:'Giro ruso con kettlebell',s:3,r:'16 total',rest:'45 s',d:'giroRuso',
-  c:'Sentado, torso echado hacia atrás unos 45°, la kettlebell con las dos manos a la altura del pecho. Gira el tronco de lado a lado tocando el suelo al costado de la cadera; 16 son 8 por lado. LOS TALONES SE QUEDAN EN EL SUELO: levantar los pies se ve mejor pero te carga la espalda baja, y la tuya es lo más flojo que tienes. Gira desde las costillas y no desde los brazos — si la pesa se mueve y el torso no, no estás haciendo nada. Lento, y con la de 10: acá no se busca peso. Es tu única rotación cargada de la semana.'},
- {n:'Paseo del maletero con kettlebell',s:3,r:'45 s x lado',rest:'45 s',d:'maletero',
-  c:'La kettlebell en UNA mano, colgando al costado como una maleta, y caminas. Eso es todo. El trabajo está en no inclinarte: el peso te tira para un lado y el costado contrario tiene que aguantar para que los hombros queden parejos. Hombros atrás, mirada al frente, pasos normales. 45 segundos con un brazo, cambias y 45 con el otro, y recién ahí descansas. Si no tienes dónde caminar, quédate parado aguantándola: sirve casi igual. Carga oblicuos, antebrazo y agarre — el agarre va a ser lo primero que te falle, y eso también es entrenarlo. OJO CON EL DIBUJO: ahí lleva DOS pesas, una en cada mano, y así el ejercicio no sirve para nada de lo que buscamos — con las dos manos cargadas los pesos se anulan y el costado no tiene que aguantar nada. Tú vas con UNA sola, y el otro brazo colgando libre.'},
  {n:'CARDIO — a tu elección',cardio:1,s:1,r:'10 min',sug:'Caminata rápida',rest:'—',
   c:'Suave, de cierre. Este día ya te dejó el abdomen y los antebrazos cocidos, no busques nada más acá. Ritmo conversacional, y anota lo que hiciste de verdad.'}
 ]
@@ -1431,12 +1435,16 @@ function vHoy(){
       </div>`;
       }
     }
+    /* Tres ejercicios del día F no existen dibujados en la biblioteca. Sin
+       este aviso, abrir uno y no encontrar el dibujo se lee como que la app
+       falló; con él se lee como lo que es, y el botón de abajo lo resuelve. */
+    if(e.sinDibujo) h+=`<p class="pieilu">Este no tiene dibujo en la biblioteca — míralo en el video de aquí abajo.</p>`;
     h+= mapaMus(e.d);
     h+=`<p class="cue">${e.c}</p>`;
     /* En el cardio la modalidad la eliges tú, así que un video de "a tu
        elección" no lleva a ninguna parte. */
     if(!e.cardio) h+=`<a class="demo" target="_blank" rel="noopener"
-         href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.n+' técnica correcta')}">
+         href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.busca || (e.n+' técnica correcta'))}">
          Ver demostración en video ↗</a>`;
     if(e.cardio){
       const c = filaCardio();
