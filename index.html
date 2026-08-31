@@ -305,11 +305,31 @@
   .addcom input[type=text]{flex:1 1 170px;min-width:0}
   .addcom input[type=time]{flex:0 0 112px}
   .addcom button{flex:0 0 auto}
+  /* ---- lo que repite: botones de un toque ----
+     El chip es DOS botones pegados (usar / borrar) y no uno con una ✕ encima,
+     para que el área de toque de cada uno sea de verdad tocable con el pulgar. */
+  .rep{margin-top:12px;border-top:1px solid var(--line);padding-top:11px}
+  .rep-t{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+         color:var(--ink-2);margin:2px 0 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{display:inline-flex;align-items:stretch;border:1px solid var(--pine);
+        border-radius:999px;overflow:hidden;max-width:100%}
+  .chip button{background:var(--pine-lt);color:var(--pine);border:0;border-radius:0;
+        font-size:12.5px;font-weight:600;padding:6px 11px;min-height:32px;
+        max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip button small{font-weight:500;opacity:.7}
+  .chip button.x{padding:6px 9px;border-left:1px solid var(--pine);font-weight:400}
+  button.peq{font-size:12.5px;padding:7px 12px}
+  /* aviso de respaldo: el recuadro en Resumen y el punto en la pestaña */
+  .aviso-resp{background:#FDF3E3;border-left:3px solid #B4722A;color:#5A3C12;
+              border-radius:8px;padding:11px 13px;margin-top:12px;font-size:13px;line-height:1.45}
+  .punto{display:inline-block;width:6px;height:6px;border-radius:50%;
+         background:#B4722A;vertical-align:super;margin-left:4px}
   .graf{margin:4px 0 14px;max-width:430px}
   .graf svg{width:100%;height:auto;display:block}
   .graf-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
           font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--slate)}
-  .graf-d{font-weight:600;font-size:13px;color:var(--ink-2)}
+  .graf-d{font-weight:600;font-size:13px;color:var(--ink-2);white-space:nowrap}
   .graf-d.bien{color:var(--pine)}
   .graf-d.mal{color:var(--rust)}
   /* ---- historial de medidas ---- */
@@ -923,7 +943,8 @@ Object.keys(PLAN).forEach(k=>PLAN[k].push({...SUELO}));
    ============================================================ */
 const KEY = 'entreno:v1';
 const DEF = {
-  cfg:{alt:190,peso:90,edad:33,sexo:1,act:1.55,def:0.17,prot:2.1,gr:0.85,inicio:''},
+  cfg:{alt:190,peso:90,edad:33,sexo:1,act:1.55,def:0.17,prot:2.1,gr:0.85,inicio:'',
+       resp:''},   /* resp = día en que generó el último respaldo JSON. Ver avisoRespaldo() */
   semana:1,      /* solo respaldo: la semana de verdad sale de la fecha, ver semanaDe() */
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
   cardio:[],   // {f,sem,dia,tipo,min,metros,kcal,nota} — tipo = la modalidad que eligió
@@ -933,6 +954,10 @@ const DEF = {
   alimentos:[],// {rid,f,sem,hora,txt,alim,nombre,n,unidad,gramos,ok,kcal,p,c,g,agua}
                //   lo que comió, registro por registro y con su hora. `ok:0` es
                //   "no lo reconocí": sus macros van en null, NUNCA en cero.
+  platos:[],   // {pid,nombre,txt} — comidas suyas guardadas para repetirlas de
+               //   un toque. `txt` es la MISMA frase que escribiría a mano, así
+               //   que al usarla vuelve a pasar por el estimador y no guarda
+               //   macros congelados que quedarían viejos si cambia la tabla.
   medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota} — UNO POR FECHA
   sesiones:[]  // {f,sem,dia,sueno,zona,dolor,nota} — cómo llegaste a entrenar
 };
@@ -960,6 +985,7 @@ async function load(){
   S.cfg = Object.assign(JSON.parse(JSON.stringify(DEF.cfg)), S.cfg||{});
   /* un respaldo anterior al registro por comidas no trae la lista */
   if(!Array.isArray(S.alimentos)) S.alimentos = [];
+  if(!Array.isArray(S.platos)) S.platos = [];
   if(!fechaMs(S.cfg.inicio)){
     /* Primera vez con semanas automáticas. El plan empezó el día del registro
        más antiguo que exista; si no hay ninguno, hoy. No se toca ningún dato:
@@ -1264,6 +1290,12 @@ function grafico(puntos, opt){
   const xs=P.map(p=>fechaMs(p.f)), ys=P.map(p=>nz(p.v));
   const x0=Math.min(...xs), x1=Math.max(...xs);
   let y0=Math.min(...ys), y1=Math.max(...ys);
+  /* ---- la línea de objetivo entra en el RANGO ----
+     Si el objetivo queda fuera de y0..y1 se dibuja pegado al borde o fuera del
+     recuadro, y una referencia que no se ve es peor que ninguna: la curva
+     parecería estar sobre el objetivo cuando va muy por debajo. */
+  const obj = nz(opt.objetivo)>0 ? nz(opt.objetivo) : null;
+  if(obj!==null){ y0=Math.min(y0,obj); y1=Math.max(y1,obj); }
   if(y1===y0){ y0-=1; y1+=1; }                 /* todo igual: no dividir por cero */
   const m=(y1-y0)*0.15; y0-=m; y1+=m;
   const px=v=> mL + (x1===x0?0.5:(v-x0)/(x1-x0))*(W-mL-mR);
@@ -1285,13 +1317,47 @@ function grafico(puntos, opt){
   }) : null;
   const primero=ys[0], ultimo=ys[ys.length-1];
   const dif=+(ultimo-primero).toFixed(1);
-  const bien = dif===0 ? null : (opt.bajarEsBueno ? dif<0 : dif>0);
+  /* ---- qué número va arriba a la derecha ----
+     En peso y cintura, cuánto se movió de punta a punta: eso es el progreso.
+     En lo que come NO: comparar lo que comió el primer día contra el último
+     día no dice nada —salía «0 kcal» con siete días anotados— porque el dato
+     de un día es ruido. Ahí va la MEDIA de los últimos días contra el
+     objetivo, que es la cifra con la que se decide subir o bajar calorías. */
+  const ventana = opt.media || 7;
+  const desdeM = masDias(P[P.length-1].f, -(ventana-1));
+  const ult = ys.filter((v,i)=>P[i].f>=desdeM);
+  const mediaUlt = ult.length ? +(ult.reduce((a,b)=>a+b,0)/ult.length).toFixed(ys.some(v=>v%1)?1:0) : null;
+  /* ---- cuándo se colorea la diferencia ----
+     En peso y cintura bajar es bueno y subir es malo, y ahí el color informa.
+     En calorías no: pasarse y quedarse corto son igual de malos, así que
+     pintar «+300 kcal» de rojo o de verde sería mentir. Con `neutro` el
+     número se muestra sin juzgarlo y quien juzga es la línea de objetivo. */
+  /* la referencia punteada: el objetivo si lo hay, y si no el primer valor */
+  const ref = obj!==null ? obj : primero;
+  /* sin repetir la unidad: el título ya dice si son calorías o gramos, y con
+     ella el encabezado no cabe en 414 px y «kcal» cae solo a la línea de abajo */
+  const refTxt = obj!==null ? ` · objetivo ${coma(obj)}` : '';
+  let bien, cifra;
+  if(obj!==null && mediaUlt!==null){
+    cifra = `media ${ventana} d: ${coma(mediaUlt)} ${opt.unidad||''}`;
+    /* se marca en rojo solo quedarse corto, y con el MISMO umbral que ya usa
+       la Lectura semanal (90 % del objetivo): dos avisos de lo mismo con
+       umbrales distintos es peor que uno solo */
+    /* el umbral se redondea igual que la cifra que se muestra: 188×0,9 da
+       169.20000000000002 en coma flotante, así que una media de 169,2 —el
+       umbral clavado— salía marcada en rojo contra el número que la propia
+       pantalla estaba mostrando */
+    bien = opt.neutro ? null : (mediaUlt >= +(obj*0.9).toFixed(1));
+  }else{
+    cifra = `${dif>0?'+':''}${coma(dif)} ${opt.unidad||''}`;
+    bien = (opt.neutro || dif===0) ? null : (opt.bajarEsBueno ? dif<0 : dif>0);
+  }
   return `<div class="graf">
-    <div class="graf-t"><span>${opt.titulo||''}</span>
-      <span class="graf-d ${bien===null?'':(bien?'bien':'mal')}">${dif>0?'+':''}${coma(dif)} ${opt.unidad||''}</span></div>
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.titulo||'evolución'}: de ${coma(primero)} a ${coma(ultimo)}">
-      <line x1="${mL}" y1="${py(primero).toFixed(1)}" x2="${W-mR}" y2="${py(primero).toFixed(1)}"
-            stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
+    <div class="graf-t"><span>${opt.titulo||''}${refTxt}</span>
+      <span class="graf-d ${bien===null?'':(bien?'bien':'mal')}">${cifra}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.titulo||'evolución'}: de ${coma(primero)} a ${coma(ultimo)}${obj!==null?`, objetivo ${coma(obj)}`:''}">
+      <line x1="${mL}" y1="${py(ref).toFixed(1)}" x2="${W-mR}" y2="${py(ref).toFixed(1)}"
+            stroke="var(${obj!==null?'--pine-md':'--line'})" stroke-width="1" stroke-dasharray="4 4"/>
       <polyline points="${pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}"
                 fill="none" stroke="var(${MM?'--pine-md':'--pine'})" stroke-width="${MM?1.5:2.5}"
                 stroke-linecap="round" stroke-linejoin="round"/>
@@ -1307,7 +1373,11 @@ function grafico(puntos, opt){
       <text x="${mL}" y="${H-4}" font-size="10" font-family="monospace" fill="var(--slate)">${fechaCorta(P[0].f)} · ${coma(primero)}</text>
       <text x="${W-mR}" y="${H-4}" font-size="10" font-family="monospace" fill="var(--slate)" text-anchor="end">${fechaCorta(P[P.length-1].f)} · ${coma(ultimo)}</text>
     </svg>
-    ${MM?`<p class="pieilu" style="margin:1px 0 0">Línea gruesa: la media de ${opt.media} días, que es la que hay que mirar. La clara y los puntos son cada pesaje.</p>`:''}
+    ${MM
+      ? `<p class="pieilu" style="margin:1px 0 0">${obj!==null
+          ? `Gruesa: la media de ${opt.media} días. Punteada: tu objetivo.`
+          : `Línea gruesa: la media de ${opt.media} días, que es la que hay que mirar. La clara y los puntos son cada ${opt.cada||'pesaje'}.`}</p>`
+      : (obj!==null?`<p class="pieilu" style="margin:1px 0 0">La punteada es tu objetivo.</p>`:'')}
   </div>`;
 }
 
@@ -1341,8 +1411,13 @@ function render(){
   const t=targets();
   document.getElementById('hdrTargets').textContent =
     `${t.kcal} kcal · ${t.p} g proteína · semana ${semanaHoy()}`;
+  /* El punto en «Resumen» es la única forma de que el aviso de respaldo se vea
+     sin entrar a la pestaña. Va con texto para el lector de pantalla: un punto
+     de color solo no dice nada. */
+  const marcaResp = hayQueRespaldar();
   document.getElementById('nav').innerHTML = TABS.map(([k,l])=>
-    `<button role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}</button>`).join('');
+    `<button role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}${
+      (k==='resumen'&&marcaResp)?'<i class="punto" aria-label="respaldo pendiente"></i>':''}</button>`).join('');
   document.getElementById('main').innerHTML = ({hoy:vHoy,comida:vComida,medidas:vMedidas,resumen:vResumen,ajustes:vAjustes})[tab]();
 }
 
@@ -1558,6 +1633,9 @@ function vHoy(){
    export para completarlo después. Un cero silencioso sería peor
    que un hueco visible.
    ============================================================ */
+/* @parser-inicio — desde acá hasta @parser-fin es el bloque que la suite de
+   pruebas extrae y ejecuta fuera del navegador. NO borrar estas dos marcas:
+   sin ellas la suite revienta, que es justo lo que tiene que pasar. */
 
 /* Sin tildes, sin ñ y sin puntuación: así "plátano", "platano" y
    "PLÁTANOS" caen en la misma fila de la tabla. */
@@ -1701,6 +1779,8 @@ function estimarLinea(linea){
   return out;
 }
 
+/* @parser-fin */
+
 /* ---- del texto al registro guardado ---- */
 const horaAhora = () => { const d=new Date(), dos=n=>String(n).padStart(2,'0');
   return `${dos(d.getHours())}:${dos(d.getMinutes())}`; };
@@ -1729,6 +1809,13 @@ function reestimar(r){
    que ya costó caro con el peso, cuando `cfg.peso` y `medidas[].peso` no se
    hablaban y anotar el peso donde correspondía no recalculaba nada. */
 function itemsDia(f){ return (S.alimentos||[]).filter(x=>x.f===f); }
+/* Los días que tienen comida anotada, en orden y con su total. Sale de las DOS
+   listas: un día puede tener solo una corrección a mano (S.comida) y ninguna
+   fila en S.alimentos, o al revés. */
+function diasComida(){
+  return [...new Set((S.alimentos||[]).map(x=>x.f).concat(S.comida.map(x=>x.f)))]
+    .filter(f=>fechaMs(f)).sort().map(comidaDia);
+}
 function comidaDia(f){
   const d = S.comida.find(x=>x.f===f) || {};
   const it = itemsDia(f);
@@ -1744,51 +1831,148 @@ function comidaDia(f){
           sinEstimar: it.filter(x=>!x.ok).length};
 }
 
-function agregarComida(){
-  const inp = document.getElementById('comeTxt');
-  const hora = (document.getElementById('comeHora')||{}).value || horaAhora();
-  const txt = (inp && inp.value || '').trim();
-  if(!txt){ if(inp) inp.focus(); return; }
+/* ---- de una frase a registros del día que esté abierto ----
+   ⚠La fecha es `comFecha`, NO hoy(): la pestaña Comida se quedó sin selector
+   de día hasta el 31-ago y una cena que se te olvidara anotar no tenía dónde
+   ir. `sem` sale de esa misma fecha, no de la semana en curso, o el resumen
+   sumaría la cena de la semana pasada en ésta. */
+function anotarFrase(txt, hora){
+  txt = String(txt||'').trim();
+  if(!txt) return null;
+  const f = comFecha || (comFecha = hoy());
   const partes = (typeof estimarLinea === 'function') ? estimarLinea(txt) : [];
   /* Sin la tabla cargada igual se guarda: mejor un registro sin estimar que
      perder lo que escribió. */
   const filas = partes.length ? partes : [{txt, n:1, unidad:'', ok:0,
                     id:'', kcal:null, p:null, c:null, g:null, agua:null}];
   filas.forEach(x=>{
-    S.alimentos.push({rid:ridCorto(), f:hoy(), sem:semanaHoy(), hora,
+    S.alimentos.push({rid:ridCorto(), f, sem:semanaDe(f), hora:hora||horaAhora(),
       txt:x.txt, alim:x.id||'', nombre:x.nombre||'', n:x.n, unidad:x.unidad||'',
       gramos:(x.gramos===undefined?null:x.gramos), ok:x.ok, aprox:x.aprox?1:0,
       kcal:x.kcal, p:x.p, c:x.c, g:x.g, agua:x.agua});
   });
-  saveNow(); render();
+  return filas;
+}
+function avisarAnotado(filas){
   const sin = filas.filter(x=>!x.ok).length;
-  toast(sin ? `Anotado — ${sin} sin estimar` :
-              `Anotado: ${filas.map(x=>x.nombre||x.txt).join(' + ')}`);
+  const dia = comFecha===hoy() ? '' : ` el ${fechaCorta(comFecha)}`;
+  toast(sin ? `Anotado${dia} — ${sin} sin estimar` :
+              `Anotado${dia}: ${filas.map(x=>x.nombre||x.txt).join(' + ')}`);
+}
+function agregarComida(){
+  const inp = document.getElementById('comeTxt');
+  const hora = (document.getElementById('comeHora')||{}).value || horaAhora();
+  const filas = anotarFrase(inp && inp.value, hora);
+  if(!filas){ if(inp) inp.focus(); return; }
+  saveNow(); render();
+  avisarAnotado(filas);
   const i2 = document.getElementById('comeTxt'); if(i2) i2.focus();
+}
+
+/* ---- lo que repite ----
+   Las frases que más ha escrito, para volver a anotarlas de un toque. Se
+   agrupan por el texto NORMALIZADO ("Plátano" y "platano" son lo mismo) pero
+   se muestra la última forma en que la escribió él, no la normalizada. */
+function frecuentes(n){
+  const lista = (S.alimentos||[]).filter(x=>String(x.txt||'').trim());
+  const por = {};
+  lista.forEach(x=>{
+    const k = (typeof normTxt==='function' ? normTxt(x.txt) : String(x.txt).toLowerCase());
+    if(!k) return;
+    if(!por[k]) por[k] = {k, n:0, txt:x.txt, ult:''};
+    por[k].n++;
+    /* la forma más reciente: la lista está en orden de anotación */
+    if(String(x.f) >= por[k].ult){ por[k].ult = String(x.f); por[k].txt = x.txt; }
+  });
+  /* con una sola aparición no es "lo de siempre", es lo que comió una vez */
+  return Object.values(por).filter(x=>x.n>=2)
+    .sort((a,b)=> b.n-a.n || b.ult.localeCompare(a.ult)).slice(0, n||8);
+}
+/* Guarda una comida suya. Si el campo trae texto, guarda ESO; si está vacío,
+   guarda lo que anotó ese día, unido por comas — que es como lo escribiría. */
+function guardarPlato(){
+  const inp = document.getElementById('comeTxt');
+  const escrito = (inp && inp.value || '').trim();
+  const delDia = itemsDia(comFecha||hoy())
+    .slice().sort((a,b)=>String(a.hora||'').localeCompare(String(b.hora||'')))
+    .map(x=>x.txt);
+  const txt = escrito || delDia.join(', ');
+  if(!txt){ toast('Escribe la comida arriba, o anota primero lo del día'); return; }
+  const nombre = (prompt('¿Cómo se llama esta comida?\n\n' + txt, '') || '').trim();
+  if(!nombre) return;                       /* canceló: no se guarda nada */
+  const ya = S.platos.find(p=>p.nombre.toLowerCase()===nombre.toLowerCase());
+  if(ya){
+    if(!confirm(`Ya tienes una comida llamada «${ya.nombre}»:\n\n${ya.txt}\n\n¿La reemplazo?`)) return;
+    ya.txt = txt;
+  }else{
+    S.platos.push({pid:ridCorto(), nombre, txt});
+  }
+  saveNow(); render(); toast(`Guardada: ${nombre}`);
 }
 
 
 /* ---------- COMIDA ---------- */
+/* Los botones de un toque. Van dentro de la misma tarjeta del campo de texto
+   porque son la otra manera de hacer lo mismo: escribir una frase. */
+function repetirHTML(){
+  const pl = S.platos||[], fr = frecuentes(8);
+  let h = `<div class="rep">`;
+  /* ⚠El botón de guardar va SIEMPRE, también cuando no hay nada guardado
+     todavía. Metido dentro del `if` de los chips quedaba un círculo cerrado:
+     solo aparecía cuando ya tenías comidas guardadas, así que la primera no
+     había manera de crearla. Se vio apretándolo, no leyéndolo. */
+  if(!pl.length && !fr.length){
+    return h + `<p class="prev" style="margin:0 0 9px">Cuando repitas una comida te va a aparecer acá para anotarla de un toque.</p>`
+      + `<button class="act ghost peq" id="btnPlato">Guardar como comida mía</button>`
+      + `<p class="prev" style="margin:7px 0 0">Guarda lo que tengas escrito arriba; si el campo está vacío, guarda todo lo que anotaste este día.</p></div>`;
+  }
+  if(pl.length){
+    h += `<div class="rep-t">Tus comidas</div><div class="chips">` +
+      pl.map(p=>`<span class="chip"><button data-plato="${p.pid}" title="${esc(p.txt)}">${esc(p.nombre)}</button>`
+        + `<button class="x" data-platoborrar="${p.pid}" aria-label="Borrar ${esc(p.nombre)}">✕</button></span>`).join('') +
+      `</div>`;
+  }
+  if(fr.length){
+    h += `<div class="rep-t">Lo que más repites</div><div class="chips">` +
+      fr.map(x=>`<span class="chip"><button data-frec="${esc(x.txt)}">${esc(x.txt)} <small>×${x.n}</small></button></span>`).join('') +
+      `</div>`;
+  }
+  h += `<button class="act ghost peq" id="btnPlato">Guardar como comida mía</button>`;
+  h += `<p class="prev" style="margin:7px 0 0">Guarda lo que tengas escrito arriba; si el campo está vacío, guarda todo lo que anotaste este día.</p>`;
+  return h + `</div>`;
+}
+
+/* ---- el día es un SELECTOR, igual que en Medidas ----
+   La pestaña mostraba SOLO hoy. Si se te olvidaba anotar la cena y te
+   acordabas al día siguiente, no había dónde ponerla. Ahora eliges el día
+   arriba y todo lo de la pestaña —lo que anotas, los totales, la corrección a
+   mano y el tipo de día— es de ESE día. */
+let comFecha = null;
 function vComida(){
   const t=targets();
-  const f=hoy();
+  const f = comFecha || (comFecha = hoy());
   const cd=comidaDia(f);
   const d=cd.d;
+  const esHoy = f===hoy();
   const pct=(v,o)=>Math.min(100,Math.round(nz(v)/o*100));
   const objKcal = d.tipo==='Alto'?t.alto : d.tipo==='Bajo'?t.bajo : t.kcal;
 
-  let h=`<h2>Comida de hoy</h2>
+  let h=`<h2>Comida</h2>
   <p class="lede">Anótalo cuando lo comas y como lo dirías en voz alta: <b>2 huevos duros</b>, <b>un litro de agua</b>, <b>una taza de arroz con un pedazo de carne</b>. Las calorías y la proteína las estima la app — tú no tienes que saberlas.</p>
   <div class="card">
+    <div class="eyebrow">Semana ${semanaDe(f)}${esHoy?' · hoy':''}</div>
+    <div style="margin:10px 0 12px"><label>Día que estás anotando</label>
+      <input type="date" data-comfecha="1" value="${f}" style="max-width:220px"></div>
     <div class="addcom">
       <input type="text" id="comeTxt" autocomplete="off" placeholder="2 huevos duros">
       <input type="time" id="comeHora" value="${horaAhora()}">
       <button class="act" id="btnCome">Agregar</button>
     </div>
     <p class="prev" style="margin:9px 0 0">Van varias cosas juntas separadas por coma o por «y». Si algo no lo conoce, igual queda anotado y sale marcado para que yo lo estime.</p>
+    ${repetirHTML()}
   </div>
 
-  <h2>Va del día</h2>
+  <h2>Va del ${esHoy?'día':fechaCorta(f)}</h2>
   <div class="card">
     <div class="eyebrow" id="lblKcal">Calorías · objetivo ${objKcal}</div>
     <div class="bar"><i id="barKcal" class="${nz(cd.kcal)>objKcal*1.05?'over':''}" style="width:${pct(cd.kcal,objKcal)}%"></i></div>
@@ -1800,12 +1984,12 @@ function vComida(){
       <div class="stat"><b>${cd.c??'—'} g</b><small>carbos</small></div>
       <div class="stat"><b>${cd.g??'—'} g</b><small>grasa</small></div>
       <div class="stat"><b>${cd.agua??'—'} L</b><small>agua</small></div>
-      <div class="stat"><b>${cd.items.length}</b><small>registros hoy</small></div>
+      <div class="stat"><b>${cd.items.length}</b><small>registros ${esHoy?'hoy':'ese día'}</small></div>
     </div>
     <p class="prev" style="margin:10px 0 0">${
       cd.hayMan ? 'Estás usando un total escrito a mano; manda ese y no la suma.'
-      : cd.items.length ? `Sumado de tus ${cd.items.length} registros de hoy.${cd.sinEstimar?` <b class="sube">${cd.sinEstimar} sin estimar</b>, así que el total va corto.`:''}`
-      : 'Todavía no has anotado nada hoy.'}</p>
+      : cd.items.length ? `Sumado de tus ${cd.items.length} registros de ${esHoy?'hoy':fechaCorta(f)}.${cd.sinEstimar?` <b class="sube">${cd.sinEstimar} sin estimar</b>, así que el total va corto.`:''}`
+      : `Todavía no has anotado nada ${esHoy?'hoy':'ese día'}.`}</p>
     <div style="margin-top:12px">
       <button class="act ghost" id="btnManual">${cd.hayMan?'Ver el total a mano':'Corregir el total a mano'}</button>
       ${cd.hayMan?`<button class="act ghost" id="btnAuto" style="margin-left:8px">Volver al calculado</button>`:''}
@@ -1830,10 +2014,10 @@ function vComida(){
       <input data-com="nota" value="${esc(d.nota||'')}"></div>
   </div>
 
-  <h2>Lo que anotaste hoy</h2>`;
+  <h2>Lo que anotaste ${esHoy?'hoy':'el '+fechaCorta(f)}</h2>`;
 
   if(!cd.items.length){
-    h+=`<div class="card"><p class="prev" style="margin:0">Nada todavía. Anota arriba lo primero que comas o tomes.</p></div>`;
+    h+=`<div class="card"><p class="prev" style="margin:0">Nada todavía. Anota arriba lo primero que ${esHoy?'comas o tomes':'hayas comido ese día'}.</p></div>`;
   }else{
     /* Filas de DOS líneas y no una tabla: con seis columnas en 414 px el
        texto se parte en tres líneas y el botón de borrar queda cortado contra
@@ -1867,6 +2051,25 @@ function vComida(){
     });
     if(cd.sinEstimar) h+=`<p class="prev" style="margin:10px 0 0">Los que dicen <b>sin estimar</b> no están en la tabla de alimentos. Puedes ponerles tú las kcal y la proteína ahí mismo, o dejarlos así: salen marcados en el resumen para que yo los estime y los agregue.</p>`;
     h+=`</div>`;
+  }
+
+  /* ---- los días que ya tienen algo anotado ----
+     Sirve para dos cosas: ver de un vistazo si se te quedó un día sin anotar,
+     y saltar a corregirlo sin pelear con el calendario del teléfono. */
+  const dias = diasComida().reverse().slice(0,14);
+  if(dias.length){
+    h+=`<h2>Días anotados</h2>
+    <p class="lede">Los últimos ${dias.length}. Toca uno para ver o corregir ese día.</p>
+    <div class="scroll"><table class="tbl"><thead><tr>
+      <th>Día</th><th>Kcal</th><th>Prot</th><th>Reg.</th><th></th></tr></thead><tbody>`;
+    dias.forEach(c=>{
+      h+=`<tr${c.f===f?' class="sel"':''}>
+        <td><button class="lnk" data-comir="${c.f}">${fechaCorta(c.f)}</button></td>
+        <td>${c.kcal??''}</td><td>${coma(c.p??'')}</td><td>${c.items.length||''}</td>
+        <td>${c.sinEstimar?`<span class="sube">${c.sinEstimar} sin estimar</span>`:''}${c.hayMan?'<small>a mano</small>':''}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
   }
 
   h+=`  <h2>Tus números</h2>
@@ -1975,6 +2178,23 @@ function vMedidas(){
          vacio:'Con dos mediciones de cintura aparece la curva.'})}
   </div>`;
 
+  /* ---- lo que comió, día a día ----
+     Es el par que dirige una recomposición: la proteína contra su objetivo y
+     las calorías contra el suyo. Un día sin nada anotado NO es un cero: no
+     tiene punto, porque un cero hundiría la media y diría que comió menos
+     cuando lo que pasó es que no anotó. */
+  const tg = targets();   /* `t` en esta vista es la TENDENCIA de peso, no los objetivos */
+  const dcom = diasComida();
+  h+=`<h2>Lo que comes</h2><div class="card">
+    ${grafico(dcom.map(x=>({f:x.f, v:x.p})),
+        {titulo:'Proteína', unidad:'g', objetivo:tg.p, media:7, cada:'día',
+         vacio:'Con dos días anotados en Comida aparece la curva. Es la línea que más manda si estás en déficit.'})}
+    ${grafico(dcom.map(x=>({f:x.f, v:x.kcal})),
+        {titulo:'Calorías', unidad:'kcal', objetivo:tg.kcal, media:7, cada:'día', neutro:true,
+         vacio:'Con dos días anotados en Comida aparece la curva.'})}
+    ${dcom.length?`<p class="prev" style="margin:2px 0 0">${dcom.length} día${dcom.length===1?'':'s'} con comida anotada. Los días que no anotaste no aparecen: un cero diría que no comiste.</p>`:''}
+  </div>`;
+
   const rs = S.medidas.filter(x=>fechaMs(x.f)).sort((a,b)=>fechaMs(a.f)-fechaMs(b.f));
   if(rs.length){
     /* El Δ se calcula en orden cronológico y recién después se da vuelta la
@@ -2006,6 +2226,43 @@ function vMedidas(){
 }
 
 /* ---------- RESUMEN ---------- */
+/* ---- el respaldo ----
+   Todo vive en el localStorage de UN teléfono y no hay copia en ninguna parte:
+   cambiar de teléfono o que el navegador limpie los datos se lo lleva todo.
+   La app no puede respaldar sola —no hay servidor a propósito— así que lo
+   único que puede hacer es no dejar que se te olvide.
+
+   ⚠Lo que se marca es el día en que GENERÓ el respaldo, no que lo haya
+   guardado en alguna parte: eso la app no puede saberlo, y el texto lo dice
+   así en vez de prometer algo que no comprueba. */
+const DIAS_RESP = 14;
+function avisoRespaldo(){
+  const fechas = [...S.fuerza,...S.cardio,...S.comida,...S.medidas,...(S.alimentos||[])]
+    .map(x=>x.f).filter(f=>fechaMs(f)).sort();
+  if(!fechas.length) return null;              /* sin datos no hay nada que perder */
+  const hoyF = hoy();
+  const dias = f => Math.round((fechaMs(hoyF)-fechaMs(f))/86400000);
+  const resp = fechaMs(S.cfg.resp) ? S.cfg.resp : null;
+  const nuevo = fechas[fechas.length-1];       /* el registro más reciente */
+  if(!resp) return {estado:'nunca', desde:dias(fechas[0]), resp:null};
+  /* si no anotó nada nuevo desde el último respaldo, no hay nada que perder
+     todavía y no tiene sentido darle la lata */
+  if(nuevo <= resp) return {estado:'aldia', dias:dias(resp), resp};
+  const d = dias(resp);
+  return {estado: d>=DIAS_RESP ? 'viejo' : 'aldia', dias:d, resp};
+}
+const hayQueRespaldar = () => { const a=avisoRespaldo();
+  return !!a && (a.estado==='nunca' || a.estado==='viejo'); };
+function avisoRespaldoHTML(){
+  const a = avisoRespaldo();
+  if(!a) return '';
+  if(a.estado==='aldia')
+    return `<p class="prev" style="margin:10px 0 0">Último respaldo: hace ${a.dias===0?'menos de un día':a.dias+(a.dias===1?' día':' días')}.</p>`;
+  const txt = a.estado==='nunca'
+    ? `<b>Nunca has guardado un respaldo.</b> Llevas ${a.desde===0?'menos de un día':a.desde+(a.desde===1?' día':' días')} de registros que solo existen en este teléfono.`
+    : `<b>Hace ${a.dias} días que no respaldas</b>, y desde entonces anotaste cosas nuevas.`;
+  return `<div class="aviso-resp">${txt} Toca <b>Datos completos (JSON)</b>, copia el texto y guárdalo donde quieras — un correo a ti mismo basta. Si se borran los datos del navegador o cambias de teléfono, sin eso no hay vuelta atrás.</div>`;
+}
 function weekAgg(w){
   const f=S.fuerza.filter(x=>semanaDe(x.f)===w);
   const vol=f.reduce((a,x)=>a+nz(x.kg)*nz(x.reps),0);
@@ -2024,7 +2281,14 @@ function weekAgg(w){
   const sueno = cs.length ? +(cs.reduce((a,x)=>a+nz(x.sueno),0)/cs.length).toFixed(1) : null;
   return {w,ses,vol:Math.round(vol),min,dias:co.length,sueno,
           kcal:avg('kcal'),p:avg('p'),c:avg('c'),g:avg('g'),
-          adh:co.length?(co.reduce((a,x)=>a+nz(x.d.adh),0)/co.length).toFixed(1):null,
+          /* ⚠solo los días que TIENEN adherencia anotada. Promediando los
+             vacíos como cero salía «0.0» y la Lectura avisaba «adherencia
+             baja» sin que él hubiera anotado ninguna: una alerta falsa, y de
+             las que hacen que se dejen de leer las verdaderas. Hasta que la
+             comida se registró, esto no se veía porque no había días de
+             comida y la Lectura nunca llegaba a mirarlo. */
+          adh:(()=>{ const ca=co.filter(x=>nz(x.d.adh)>0);
+            return ca.length?(ca.reduce((a,x)=>a+nz(x.d.adh),0)/ca.length).toFixed(1):null; })(),
           peso:m.peso, cint:m.cint, pesajes:m.pesajes};
 }
 /* Cuántas sesiones SEGUIDAS vienes arrastrando la misma molestia. Una sesión
@@ -2101,12 +2365,13 @@ function vResumen(){
     h+=`</div>`;
   }
 
-  h+=`<h2>Exportar</h2>
-  <p class="lede">Copia este texto y pégamelo en el chat para que analicemos la semana y ajustemos cargas y calorías.</p>
+  h+=`<h2>Exportar y respaldar</h2>
+  <p class="lede">El <b>resumen</b> es para pegármelo en el chat y ajustar el plan. El <b>JSON</b> es tu respaldo: es lo único que te salva si pierdes el teléfono.</p>
   <div class="card">
     <button class="act" id="btnExp">Generar resumen</button>
     <button class="act ghost" id="btnJson" style="margin-left:8px">Datos completos (JSON)</button>
     <textarea id="expOut" rows="10" class="hide" style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px"></textarea>
+    ${avisoRespaldoHTML()}
   </div>
   <h2>Restaurar</h2>
   <p class="lede">Si cambiaste de teléfono o se borraron los datos del navegador, pega acá el respaldo JSON que guardaste antes.</p>
@@ -2245,7 +2510,7 @@ function refrescarCabecera(){
 function refrescarComida(){
   const lk=document.getElementById('lblKcal'); if(!lk) return;
   const t=targets();
-  const cd=comidaDia(hoy());
+  const cd=comidaDia(comFecha||hoy());
   const pct=(v,o)=>Math.min(100,Math.round(nz(v)/o*100));
   const objKcal = cd.d.tipo==='Alto'?t.alto : cd.d.tipo==='Bajo'?t.bajo : t.kcal;
   lk.textContent = `Calorías · objetivo ${objKcal}`;
@@ -2294,7 +2559,11 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   /* al entrar a Medidas siempre se aterriza en HOY, no en el día que quedó
      seleccionado la última vez que se abrió */
-  if(b.dataset.tab){ tab=b.dataset.tab; if(tab==='medidas') medFecha=hoy();
+  if(b.dataset.tab){ tab=b.dataset.tab;
+    /* al entrar se aterriza en HOY, no en el día que quedó seleccionado la
+       última vez: si no, anotas el almuerzo de hoy en el martes pasado */
+    if(tab==='medidas') medFecha=hoy();
+    if(tab==='comida') comFecha=hoy();
     render(); window.scrollTo(0,0); return; }
   if(b.dataset.medir){ medFecha=b.dataset.medir; tab='medidas'; render(); window.scrollTo(0,0); return; }
   if(b.dataset.medborrar){
@@ -2314,9 +2583,28 @@ document.addEventListener('click',e=>{
   if(b.id==='btnAuto'){
     /* volver al calculado = BORRAR la corrección, no escribir un cero:
        un cero seguiría siendo un total escrito a mano, y de 0 kcal */
-    const row=S.comida.find(x=>x.f===hoy());
+    const row=S.comida.find(x=>x.f===(comFecha||hoy()));
     if(row){ ['kcal','p','c','g','agua'].forEach(k=>{ delete row[k]; }); saveNow(); }
     render(); toast('Vuelve a mandar la suma del día'); return;
+  }
+  if(b.dataset.comir){ comFecha=b.dataset.comir; render(); window.scrollTo(0,0); return; }
+  if(b.id==='btnPlato'){ guardarPlato(); return; }
+  if(b.dataset.plato){
+    const p=(S.platos||[]).find(x=>x.pid===b.dataset.plato); if(!p) return;
+    const filas=anotarFrase(p.txt, (document.getElementById('comeHora')||{}).value);
+    if(!filas) return;
+    saveNow(); render(); avisarAnotado(filas); return;
+  }
+  if(b.dataset.platoborrar){
+    const p=(S.platos||[]).find(x=>x.pid===b.dataset.platoborrar); if(!p) return;
+    if(!confirm(`¿Borrar la comida «${p.nombre}»?\n\n${p.txt}\n\nNo borra nada de lo que ya anotaste.`)) return;
+    S.platos=S.platos.filter(x=>x.pid!==p.pid);
+    saveNow(); render(); toast('Comida borrada'); return;
+  }
+  if(b.dataset.frec!==undefined){
+    const filas=anotarFrase(b.dataset.frec, (document.getElementById('comeHora')||{}).value);
+    if(!filas) return;
+    saveNow(); render(); avisarAnotado(filas); return;
   }
   if(b.dataset.comeborrar){
     const r=(S.alimentos||[]).find(x=>x.rid===b.dataset.comeborrar);
@@ -2327,8 +2615,16 @@ document.addEventListener('click',e=>{
   }
   if(b.id==='btnExp'){ const o=document.getElementById('expOut');
     o.value=expText(); o.classList.remove('hide'); o.select(); toast('Listo — copia y pégalo en el chat'); return; }
-  if(b.id==='btnJson'){ const o=document.getElementById('expOut');
-    o.value=JSON.stringify(S); o.classList.remove('hide'); o.select(); toast('Copia de seguridad completa'); return; }
+  if(b.id==='btnJson'){
+    /* El JSON se arma ANTES de marcar la fecha, para que el respaldo que se
+       lleva no venga diciendo que ya estaba respaldado. Después se redibuja,
+       que apaga el aviso y la marca de la pestaña, y recién ahí se rellena el
+       cuadro: render() lo reconstruye vacío. */
+    const json = JSON.stringify(S);
+    S.cfg.resp = hoy(); saveNow(); render();
+    const o = document.getElementById('expOut');
+    o.value = json; o.classList.remove('hide'); o.select();
+    toast('Cópialo y guárdalo — es tu respaldo'); return; }
   if(b.id==='btnImp'){ document.getElementById('impBox').classList.toggle('hide');
     document.getElementById('impIn').focus(); return; }
   if(b.id==='btnImpGo'){ importar(); return; }
@@ -2373,7 +2669,10 @@ function importar(){
   let d;
   try{ d = JSON.parse(txt); }
   catch(e){ toast('Eso no es un JSON válido — cópialo completo'); return; }
-  const listas = ['fuerza','cardio','comida','medidas','sesiones'];
+  /* `alimentos` va en la cuenta: con el registro por comidas es la lista más
+     larga de todas, y sin ella el aviso decía «vas a cargar 0 registros»
+     restaurando un respaldo con dos meses de comida adentro. */
+  const listas = ['fuerza','cardio','comida','alimentos','medidas','sesiones'];
   if(!d || typeof d!=='object' || Array.isArray(d) || !listas.some(k=>Array.isArray(d[k]))){
     toast('El respaldo no tiene la forma esperada'); return;
   }
@@ -2386,6 +2685,8 @@ function importar(){
   const base = JSON.parse(JSON.stringify(DEF));
   S = Object.assign(base, d);
   listas.forEach(k=>{ if(!Array.isArray(S[k])) S[k]=[]; });
+  /* un respaldo anterior a las comidas guardadas no trae la lista */
+  if(!Array.isArray(S.platos)) S.platos=[];
   S.cfg = Object.assign(JSON.parse(JSON.stringify(DEF.cfg)), d.cfg||{});
   S.semana = +d.semana || 1;
   if(isNaN(fechaMs(S.cfg.inicio))){
@@ -2416,6 +2717,10 @@ document.addEventListener('change',e=>{
     const r=(S.alimentos||[]).find(x=>x.rid===rid);
     if(r){ r[cual] = el.value===''?null:+el.value; saveNow(); render(); }
     return;
+  }
+  if(el.dataset.comfecha!==undefined){
+    if(isNaN(fechaMs(el.value))) return;   /* fecha a medio escribir */
+    comFecha = el.value; render(); window.scrollTo(0,0); return;
   }
   if(el.dataset.medfecha===undefined) return;
   if(isNaN(fechaMs(el.value))) return;   /* fecha a medio escribir */
@@ -2456,9 +2761,11 @@ document.addEventListener('input',e=>{
     row[fld]=v; row.dia=dia; row.sem=semanaHoy(); save(); refrescarGuardado(); return;
   }
   if(el.dataset.com){
-    let row=S.comida.find(x=>x.f===hoy());
-    if(!row){ row={f:hoy(),sem:semanaHoy()}; S.comida.push(row); }
-    row[el.dataset.com]=v; row.sem=semanaHoy(); save();
+    /* del día que está abierto en la pestaña, no de hoy */
+    const fc = comFecha || hoy();
+    let row=S.comida.find(x=>x.f===fc);
+    if(!row){ row={f:fc,sem:semanaDe(fc)}; S.comida.push(row); }
+    row[el.dataset.com]=v; row.sem=semanaDe(fc); save();
     if(['kcal','p','tipo'].includes(el.dataset.com)) refrescarComida();
     return;
   }

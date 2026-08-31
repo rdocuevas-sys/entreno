@@ -20,6 +20,18 @@ borran los datos del navegador o se cambia de teléfono, se pierden. Por eso con
 guardar de vez en cuando el respaldo de **Resumen → Datos completos (JSON)**, que se
 recupera con **Resumen → Restaurar respaldo**.
 
+**El aviso de respaldo.** Como la app no tiene servidor a propósito, no puede respaldar
+sola; lo único que puede hacer es no dejar que se olvide. Al generar el JSON se anota el
+día en `cfg.resp`, y si pasan **14 días** *y además* hay registros posteriores a esa
+fecha, aparece un recuadro en Resumen y un punto en la pestaña. Las dos condiciones
+importan: sin datos nuevos no hay nada que perder y el aviso solo sería ruido, y un
+aviso que se ignora deja de ser un aviso.
+
+Lo que se marca es que **generó** el respaldo, no que lo haya guardado en alguna parte:
+eso la app no puede comprobarlo, y el texto lo dice así en vez de prometerlo. Por la
+misma razón el JSON se arma **antes** de estampar la fecha — si no, el archivo que se
+lleva vendría diciendo que ya estaba respaldado.
+
 ## Archivos
 
 | Archivo | Qué hace |
@@ -64,6 +76,47 @@ son promedios. «Un pedazo de carne» está entre 80 y 250 g en el mundo real y
 ninguna tabla arregla eso; por eso cada registro se puede ajustar. Lo que importa
 para recomposición es estimar siempre igual, no acertar al gramo.
 
+**El día es un selector, no «hoy».** La pestaña mostraba solo el día en curso, así que
+una cena que se olvidara anotar no tenía dónde ir. Ahora se elige el día arriba —igual
+que en Medidas— y **todo** lo de la pestaña es de ese día: lo que se anota, los totales,
+la corrección a mano y el tipo de día. Cada registro guarda la semana **de su propia
+fecha** (`semanaDe(f)`, no `semanaHoy()`): anotar el jueves pasado y que el registro
+cayera en la semana en curso duplicaría el volumen de una semana y vaciaría la otra sin
+que se note en pantalla. Al entrar a la pestaña se vuelve siempre a hoy.
+
+**Repetir lo de siempre.** Dos atajos que evitan retipear:
+
+- **Tus comidas** (`S.platos`) — frases guardadas con un nombre. Se guarda lo que esté
+  escrito en el campo o, si está vacío, todo lo anotado ese día unido por comas. Se
+  guarda **la frase**, no los macros: al usarla vuelve a pasar por el estimador, así que
+  no quedan números congelados que envejecerían al corregir la tabla de alimentos.
+- **Lo que más repites** — las frases con dos o más apariciones, agrupadas por su forma
+  normalizada («Plátano» y «platano» son la misma) pero mostradas como se escribieron la
+  última vez. Con una sola aparición no entra: eso no es «lo de siempre».
+
+El botón de guardar está **siempre**, también cuando no hay nada guardado todavía;
+metido dentro del bloque de los atajos quedaba un círculo cerrado en el que la primera
+comida no había manera de crearla.
+
+## Las curvas de calorías y proteína
+
+Están en **Medidas → Lo que comes**, junto a las de peso y cintura, con la misma media
+móvil de 7 días. Tres decisiones que no son obvias:
+
+- **El objetivo entra en el rango vertical del gráfico.** Si no, con 1.500 kcal contra un
+  objetivo de 2.476 la línea punteada se dibujaría fuera del recuadro y la curva parecería
+  ir pegada al objetivo cuando va muy por debajo.
+- **La cifra de la derecha es la media móvil, no la diferencia punta a punta.** Con
+  registro diario, comparar el primer día contra el último no dice nada: salía «0 kcal»
+  con siete días anotados. La media contra el objetivo sí es con lo que se decide subir o
+  bajar calorías.
+- **Las calorías no se pintan de verde ni de rojo** (`neutro`): pasarse y quedarse corto
+  son igual de malos. La proteína sí, y con el **mismo** umbral que ya usa la Lectura
+  semanal —el 90 % del objetivo— para no tener dos avisos de lo mismo discrepando.
+
+Un día sin anotar **no tiene punto**: un cero hundiría la media y diría que no comió
+cuando lo que pasó es que no anotó.
+
 ## Probar en local
 
 ```bash
@@ -73,6 +126,18 @@ python -m http.server 4477
 
 El service worker necesita `http://localhost`/`127.0.0.1` o HTTPS: abriendo el archivo
 con doble clic (`file://`) no se registra y no hay instalación ni modo sin conexión.
+
+### Las pruebas
+
+Viven fuera del repo (en el directorio de trabajo de la sesión) y **extraen el código
+directamente de `index.html`**: no hay copia del parser que mantener al día. El bloque
+que se extrae está delimitado por las marcas `@parser-inicio` y `@parser-fin` dentro del
+`<script>` — **no borrarlas**: sin ellas la suite revienta, que es justo lo que tiene
+que pasar.
+
+Cada suite lleva su **control negativo**: rompe a propósito, *en memoria y nunca en el
+archivo*, lo que dice proteger, y comprueba que con el código roto la suite falla. Una
+prueba que pasa igual con el defecto puesto no está midiendo nada.
 
 ## Créditos de las ilustraciones
 
