@@ -58,10 +58,40 @@ la app no puede comprobarlo, y el texto lo dice así en vez de prometerlo. Por l
 razón el JSON se arma **antes** de estampar la fecha — si no, el archivo que se lleva
 vendría diciendo que ya estaba respaldado.
 
-**Lo que sigue sin cubrir:** todo esto depende de que aprietes el botón. La app no tiene
-servidor a propósito, y sin uno no hay respaldo automático posible. La salida sería subir
-el JSON solo a un repositorio privado; no está hecho, y tiene su propio filo —si la app
-sube sola, un día que los datos se pierdan localmente también subiría el vacío.
+### Respaldo automático a un repositorio privado
+
+Sube el mismo JSON solo a **`rdocuevas-sys/entreno-datos`** (privado) al abrir la app y al
+volver a ella, como mucho una vez cada 3 horas y **solo si algo cambió** — si no, subiría
+megas por nada. Cada subida es un commit, así que hay **historial**: se puede volver a
+cualquier día. Se configura en **Ajustes → Respaldo automático**.
+
+🔑**El token NO vive dentro de `S`.** Vive en su propia clave del `localStorage`
+(`entreno:gh`) y por eso **no entra en el respaldo**. Guardado en `S.cfg` habría viajado
+dentro de cada archivo mandado a iCloud, a un correo o por WhatsApp: la llave de escritura
+del repositorio, repartida en cada copia. Por la misma razón restaurar no lo toca, y la
+pantalla lo muestra tapado (prefijo + largo), nunca entero. Hay pruebas dedicadas a las
+tres cosas, con su control negativo.
+
+⚠**La compuerta que hace que el automático no sea peligroso.** Si la app sube sola, el día
+que los datos se pierdan localmente subiría el vacío *encima* del respaldo bueno. Por eso:
+si el respaldo nuevo trae más de `GH_CAIDA` (20) registros menos que el último subido, **no
+sube solo** y lo dice; a mano, pregunta antes. Borrar unos pocos registros a propósito no
+dispara nada.
+
+⚠**El automático conectado pero fallando enciende el aviso de respaldar a mano.** Es el
+peor caso posible: la última subida buena estampó `cfg.resp`, así que sin esto el aviso
+quedaría apagado dos semanas mientras no se sube nada — te dejaría sin ninguno de los dos
+respaldos y creyendo que tienes uno.
+
+Otras decisiones: **conectar comprueba de verdad** contra GitHub antes de guardar nada
+—que el repo exista, que sea **privado** (un repo público se rechaza y se explica por qué)
+y que el token pueda escribir—; un choque de `sha` se reintenta **una** vez releyendo el
+sha; y **quedarse sin señal no es un error**: no deja un aviso rojo pegado, se reintenta a
+la próxima. Traer el respaldo usa `Accept: application/vnd.github.raw` porque el endpoint
+normal no devuelve el contenido de archivos de más de 1 MB, y un año pesa 1,2 MB.
+
+**Lo que sigue sin cubrir:** el token caduca y hay que renovarlo a mano (la app lo dice
+cuando pasa). Y el respaldo por archivo se queda como salida para ese día.
 
 ## Archivos
 

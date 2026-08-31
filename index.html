@@ -320,6 +320,11 @@
   .chip button small{font-weight:500;opacity:.7}
   .chip button.x{padding:6px 9px;border-left:1px solid var(--pine);font-weight:400}
   button.peq{font-size:12.5px;padding:7px 12px}
+  .pasos{margin:10px 0 4px;padding-left:20px;font-size:13px;color:var(--ink-2);line-height:1.55}
+  .pasos li{margin-bottom:7px}
+  .pasos code,.card code{font-family:'IBM Plex Mono',monospace;font-size:12px;
+       background:var(--pine-lt);color:var(--pine);padding:1px 5px;border-radius:4px}
+  summary.lnk{cursor:pointer;font-size:13px;font-weight:600;color:var(--pine);margin-bottom:4px}
   /* aviso de respaldo: el recuadro en Resumen y el punto en la pestaña */
   .aviso-resp{background:#FDF3E3;border-left:3px solid #B4722A;color:#5A3C12;
               border-radius:8px;padding:11px 13px;margin-top:12px;font-size:13px;line-height:1.45}
@@ -2292,10 +2297,208 @@ async function guardarRespaldo(){
   if(o){ o.value=json; o.classList.remove('hide'); o.select(); }
   toast('Este navegador no deja guardar archivos — cópialo a mano');
 }
+/* ============================================================
+   RESPALDO AUTOMÁTICO A UN REPOSITORIO PRIVADO
+   ------------------------------------------------------------
+   Todo lo de arriba depende de que se acuerde de apretar un botón. Esto sube
+   el mismo JSON solo, a un repo privado de GitHub, donde cada subida queda
+   como un commit — o sea, con historial: se puede volver a cualquier día.
+
+   🔑EL TOKEN NO VIVE DENTRO DE `S`. Vive en su propia clave del
+   localStorage, y por eso NO entra en el respaldo. Guardado en `S.cfg`
+   habría viajado dentro de cada archivo que se manda a iCloud, a un correo o
+   por WhatsApp: la llave de escritura del repo, repartida en cada respaldo.
+   Por la misma razón la restauración no lo toca.
+   ============================================================ */
+const GH_KEY = 'entreno:gh';
+const GH_HORAS = 3;        /* mínimo entre subidas automáticas */
+const GH_CAIDA = 20;       /* cuántos registros puede bajar sin preguntar */
+
+function ghCfg(){
+  try{ return JSON.parse(localStorage.getItem(GH_KEY)||'null') || null; }
+  catch(e){ return null; }
+}
+function ghGuardar(c){
+  try{ localStorage.setItem(GH_KEY, JSON.stringify(c)); }catch(e){}
+}
+function ghApagar(){ try{ localStorage.removeItem(GH_KEY); }catch(e){} }
+/* Nunca se muestra entero: prefijo y largo bastan para reconocerlo. */
+const ghTapado = t => !t ? '' : `${String(t).slice(0,11)}…${String(t).length} caracteres`;
+
+/* base64 de UTF-8, por trozos: `String.fromCharCode(...bytes)` de un tirón
+   revienta la pila con más de ~100 KB, y acá el archivo llega a megas. */
+function b64(txt){
+  const b = new TextEncoder().encode(txt);
+  let s = '';
+  for(let i=0;i<b.length;i+=8192) s += String.fromCharCode.apply(null, b.subarray(i,i+8192));
+  return btoa(s);
+}
+/* hash barato solo para saber si cambió algo desde la última subida */
+function hashTxt(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h.toString(36); }
+const totalRegistros = () =>
+  ['fuerza','cardio','comida','alimentos','medidas','sesiones']
+    .reduce((a,k)=>a+((S[k]||[]).length),0);
+
+const ghUrl = c => `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/${c.ruta.split('/').map(encodeURIComponent).join('/')}`;
+const ghCab = (c, accept) => ({Authorization:`Bearer ${c.token}`,
+  Accept: accept||'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'});
+
+/* El sha del archivo que ya está allá; null si todavía no existe. Sin él,
+   GitHub rechaza la escritura sobre un archivo existente. */
+async function ghSha(c){
+  const r = await fetch(`${ghUrl(c)}?ref=${encodeURIComponent(c.rama)}&t=${Date.now()}`,
+    {headers: ghCab(c), cache:'no-store'});
+  if(r.status===404) return null;
+  if(!r.ok) throw Object.assign(new Error(`GitHub respondió ${r.status}`), {status:r.status});
+  const j = await r.json();
+  return j.sha || null;
+}
+
+/* Sube el respaldo. `auto` = lo disparó la app sola, y ahí es más prudente:
+   ante la duda no sube y deja el aviso encendido. */
+async function ghSubir(auto){
+  const c = ghCfg();
+  if(!c || !c.token) return {estado:'off'};
+  const json = JSON.stringify(S);
+  const h = hashTxt(json), n = totalRegistros();
+
+  if(auto && h === c.ultimoHash) return {estado:'sincambios'};
+  if(auto && c.ultimaF){
+    const horas = (Date.now() - c.ultimaF)/3600000;
+    if(horas < GH_HORAS) return {estado:'muypronto', horas:+horas.toFixed(1)};
+  }
+
+  /* ⚠La compuerta que hace que esto no sea peligroso.
+     Si la app sube sola, el día que los datos se pierdan localmente subiría
+     el vacío ENCIMA del respaldo bueno. Con el historial de commits se podría
+     recuperar, pero recuperar es peor que no romper: si el respaldo trae
+     bastantes menos registros que el anterior, no sube solo y lo dice. */
+  if(c.ultimoN > 0 && n < c.ultimoN - GH_CAIDA){
+    const aviso = {estado:'encogio', n, antes:c.ultimoN};
+    if(auto) return aviso;
+    if(!confirm(`El respaldo que está en GitHub tiene ${c.ultimoN} registros y este tiene ${n}: ${c.ultimoN-n} menos.\n\n¿Subir igual y pisarlo?\n\nSi no estás seguro, cancela: lo que está allá no se toca y no pierdes nada.`))
+      return aviso;
+  }
+
+  const cuerpo = {message:`Respaldo ${hoy()} · ${n} registros`,
+                  content: b64(json), branch: c.rama};
+  try{
+    let sha = await ghSha(c);
+    if(sha) cuerpo.sha = sha;
+    let r = await fetch(ghUrl(c), {method:'PUT', headers:
+      Object.assign(ghCab(c), {'Content-Type':'application/json'}), body: JSON.stringify(cuerpo)});
+    /* 409: alguien más escribió entremedio. Se relee el sha y se reintenta
+       UNA vez; si vuelve a chocar, no se insiste a ciegas. */
+    if(r.status===409){
+      cuerpo.sha = await ghSha(c);
+      r = await fetch(ghUrl(c), {method:'PUT', headers:
+        Object.assign(ghCab(c), {'Content-Type':'application/json'}), body: JSON.stringify(cuerpo)});
+    }
+    if(!r.ok){
+      const j = await r.json().catch(()=>({}));
+      const err = {estado:'error', status:r.status, msg:j.message||`respondió ${r.status}`};
+      ghGuardar(Object.assign(c, {ultimoErr:`${err.status}: ${err.msg}`}));
+      return err;
+    }
+    ghGuardar(Object.assign(c, {ultimoHash:h, ultimoN:n, ultimaF:Date.now(), ultimoErr:''}));
+    /* subir SÍ es respaldar: apaga el aviso de los 14 días igual que el archivo */
+    marcarRespaldado();
+    return {estado:'ok', n};
+  }catch(e){
+    /* sin señal no es un error del que haya que avisar: se reintenta a la
+       próxima. Se distingue del fallo de credenciales, que sí hay que decir. */
+    const sinRed = !navigator.onLine || e.name==='TypeError';
+    if(sinRed) return {estado:'sinred', msg:String(e.message||e)};
+    /* el motivo tiene que ser accionable: «respondió 401» no le dice a nadie
+       qué hacer, y lo que hay que hacer es sacarse un token nuevo */
+    const msg = e.status===401 ? 'el token ya no sirve (lo más probable: caducó)'
+              : e.status===403 ? 'GitHub rechazó el permiso — revisa que el token tenga Contents: Read and write'
+              : e.status===404 ? 'no encuentro el repositorio, o el token perdió el acceso a él'
+              : String(e.message||e);
+    ghGuardar(Object.assign(c, {ultimoErr:msg}));
+    return {estado:'error', status:e.status, msg};
+  }
+}
+
+/* Traer el respaldo de allá: es lo que se usa al estrenar teléfono.
+   `vnd.github.raw` porque el endpoint normal NO devuelve el contenido de
+   archivos de más de 1 MB, y un año de uso pesa 1,2 MB. */
+async function ghTraer(){
+  const c = ghCfg();
+  if(!c || !c.token){ toast('Primero conecta el respaldo automático'); return; }
+  toast('Buscando el respaldo…');
+  try{
+    const r = await fetch(`${ghUrl(c)}?ref=${encodeURIComponent(c.rama)}&t=${Date.now()}`,
+      {headers: ghCab(c, 'application/vnd.github.raw'), cache:'no-store'});
+    if(r.status===404){ toast('Todavía no hay ningún respaldo allá'); return; }
+    if(!r.ok){ toast(`GitHub respondió ${r.status}`); return; }
+    importar(await r.text());
+  }catch(e){ toast('Sin conexión con GitHub'); }
+}
+
+/* Comprueba de verdad que el token sirve PARA ESTE repo, en vez de dar por
+   buena una cadena con la forma correcta. */
+async function ghProbar(c){
+  try{
+    const r = await fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`,
+      {headers: ghCab(c)});
+    if(r.status===401) return {ok:false, msg:'El token no es válido o ya caducó.'};
+    if(r.status===404) return {ok:false, msg:`No veo el repo ${c.owner}/${c.repo}. Revisa el nombre, y que el token tenga acceso a ESE repositorio.`};
+    if(!r.ok) return {ok:false, msg:`GitHub respondió ${r.status}.`};
+    const j = await r.json();
+    if(!j.private) return {ok:false, msg:'⚠Ese repositorio es PÚBLICO. Tus medidas y comidas quedarían a la vista de cualquiera. Usa uno privado.'};
+    if(j.permissions && j.permissions.push===false)
+      return {ok:false, msg:'El token puede leer pero no escribir. Necesita permiso de Contents: Read and write.'};
+    return {ok:true, rama:j.default_branch||'main'};
+  }catch(e){ return {ok:false, msg:'No pude hablar con GitHub. ¿Hay señal?'}; }
+}
+
+/* Disparo automático: al abrir la app y al volver a ella. No en cada tecla —
+   subiría megas por nada — y solo si algo cambió. */
+/* Conectar: NO se guarda nada hasta que GitHub confirma que el token sirve
+   para ese repo. Guardar primero y comprobar después dejaría el respaldo
+   "conectado" y silenciosamente muerto. */
+async function ghConectar(){
+  const v = id => (document.getElementById(id)||{}).value || '';
+  const c = {owner:v('ghOwner').trim(), repo:v('ghRepo').trim(),
+             token:v('ghToken').trim(), rama:'main', ruta:'entreno.json',
+             ultimoHash:'', ultimoN:0, ultimaF:0, ultimoErr:''};
+  if(!c.owner || !c.repo || !c.token){ toast('Faltan el usuario, el repo o el token'); return; }
+  const b = document.getElementById('btnGhOn');
+  if(b){ b.disabled=true; b.textContent='Probando…'; }
+  const r = await ghProbar(c);
+  if(!r.ok){
+    if(b){ b.disabled=false; b.textContent='Probar y activar'; }
+    alert(r.msg);                      /* el motivo entero, no un toast que se va */
+    return;
+  }
+  c.rama = r.rama;
+  ghGuardar(c);
+  const s = await ghSubir(false);      /* la primera subida, para que no quede a medias */
+  render();
+  toast(s.estado==='ok' ? `Conectado — ${s.n} registros subidos` : 'Conectado, pero la primera subida falló');
+}
+
+let ghEnCurso = false;
+async function ghAuto(){
+  if(ghEnCurso || !ghCfg()) return;
+  ghEnCurso = true;
+  try{
+    const r = await ghSubir(true);
+    if(r.estado==='ok' || r.estado==='error' || r.estado==='encogio') refrescarAjustes();
+  } finally { ghEnCurso = false; }
+}
+
 function avisoRespaldo(){
   const fechas = [...S.fuerza,...S.cardio,...S.comida,...S.medidas,...(S.alimentos||[])]
     .map(x=>x.f).filter(f=>fechaMs(f)).sort();
   if(!fechas.length) return null;              /* sin datos no hay nada que perder */
+  /* ⚠El automático conectado PERO fallando es el peor de los casos: la última
+     subida buena estampó `resp`, así que el aviso de respaldar a mano quedaría
+     apagado dos semanas mientras no se sube nada. Te dejaría sin ninguno de
+     los dos respaldos, creyendo que tienes uno. */
+  const gh = ghCfg();
+  if(gh && gh.ultimoErr) return {estado:'roto', motivo:gh.ultimoErr};
   const hoyF = hoy();
   const dias = f => Math.round((fechaMs(hoyF)-fechaMs(f))/86400000);
   const resp = fechaMs(S.cfg.resp) ? S.cfg.resp : null;
@@ -2308,12 +2511,16 @@ function avisoRespaldo(){
   return {estado: d>=DIAS_RESP ? 'viejo' : 'aldia', dias:d, resp};
 }
 const hayQueRespaldar = () => { const a=avisoRespaldo();
-  return !!a && (a.estado==='nunca' || a.estado==='viejo'); };
+  return !!a && (a.estado==='nunca' || a.estado==='viejo' || a.estado==='roto'); };
 function avisoRespaldoHTML(){
   const a = avisoRespaldo();
   if(!a) return '';
   if(a.estado==='aldia')
     return `<p class="prev" style="margin:10px 0 0">Último respaldo: hace ${a.dias===0?'menos de un día':a.dias+(a.dias===1?' día':' días')}.</p>`;
+  if(a.estado==='roto')
+    return `<div class="aviso-resp"><b>El respaldo automático no está funcionando:</b> ${esc(a.motivo)}.
+      Guarda uno a mano ahora con <b>Guardar respaldo</b>, y arregla la conexión en <b>Ajustes</b>.
+      Mientras siga así no se sube nada, aunque la pantalla de Ajustes muestre una última subida con fecha.</div>`;
   const txt = a.estado==='nunca'
     ? `<b>Nunca has guardado un respaldo.</b> Llevas ${a.desde===0?'menos de un día':a.desde+(a.desde===1?' día':' días')} de registros que solo existen en este teléfono.`
     : `<b>Hace ${a.dias} días que no respaldas</b>, y desde entonces anotaste cosas nuevas.`;
@@ -2515,6 +2722,47 @@ function statsAjustesHTML(){
     <div class="stat"><b>${t.p} g</b><small>proteína</small></div>
     <div class="stat"><b>${t.ch} g</b><small>carbohidratos</small></div>`;
 }
+/* La tarjeta del respaldo automático: o el formulario para conectarlo, o el
+   estado si ya está conectado. Nunca muestra el token entero. */
+function ghHTML(){
+  const c = ghCfg();
+  if(!c || !c.token){
+    return `<p class="lede" style="margin:0 0 12px">Sube tus datos solo a un repositorio <b>privado</b> tuyo de GitHub, cada vez que abras la app y haya algo nuevo. Cada subida queda como una versión, así que se puede volver a cualquier día.</p>
+    <details><summary class="lnk">Cómo sacar el token (2 minutos)</summary>
+      <ol class="pasos">
+        <li>Entra a <b>github.com → Settings → Developer settings → Personal access tokens → <u>Fine-grained tokens</u></b>, y toca <b>Generate new token</b>.</li>
+        <li>En <b>Repository access</b> elige <b>Only select repositories</b> y marca <b>solo</b> <code>entreno-datos</code>. Nada más.</li>
+        <li>En <b>Permissions → Repository permissions</b> pon <b>Contents: Read and write</b>. Deja todo lo demás en «No access».</li>
+        <li>Elige cuánto dura y genera. Copia el token — <b>GitHub te lo muestra una sola vez</b>.</li>
+      </ol>
+      <p class="prev">Ese token solo puede leer y escribir ese repositorio. No sirve para nada más de tu cuenta.</p>
+    </details>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label>Usuario de GitHub</label><input type="text" id="ghOwner" autocomplete="off" value="rdocuevas-sys"></div>
+      <div><label>Repositorio (privado)</label><input type="text" id="ghRepo" autocomplete="off" value="entreno-datos"></div>
+    </div>
+    <div style="margin-top:10px"><label>Token</label>
+      <input type="password" id="ghToken" autocomplete="off" placeholder="github_pat_…"></div>
+    <button class="act" id="btnGhOn" style="margin-top:12px">Probar y activar</button>
+    <p class="prev" style="margin:9px 0 0">Se comprueba de verdad contra GitHub antes de guardarlo: que el repo exista, que sea privado y que el token pueda escribir.</p>`;
+  }
+  const cuando = c.ultimaF
+    ? (()=>{ const h=(Date.now()-c.ultimaF)/3600000;
+        return h<1 ? 'hace menos de una hora' : h<24 ? `hace ${Math.round(h)} h` : `hace ${Math.round(h/24)} días`; })()
+    : 'todavía no ha subido nada';
+  const err = c.ultimoErr
+    ? `<div class="aviso-resp" style="margin:12px 0 0"><b>La última subida falló:</b> ${esc(c.ultimoErr)}.
+       Lo más común es que el token haya caducado — hazte uno nuevo y vuelve a conectarlo. Mientras tanto, guarda el respaldo a mano desde <b>Resumen</b>.</div>`
+    : '';
+  return `<p class="lede" style="margin:0 0 4px">Conectado a <b>${esc(c.owner)}/${esc(c.repo)}</b> · <code>${esc(c.ruta)}</code></p>
+    <p class="prev" style="margin:0 0 12px">Última subida: <b>${cuando}</b>${c.ultimoN?` · ${c.ultimoN} registros`:''}. Token: <code>${esc(ghTapado(c.token))}</code>.</p>
+    <button class="act" id="btnGhSubir">Subir ahora</button>
+    <button class="act ghost" id="btnGhTraer" style="margin-left:8px">Traer el último</button>
+    <button class="act ghost" id="btnGhOff" style="margin-left:8px">Desconectar</button>
+    ${err}
+    <p class="prev" style="margin:10px 0 0">Sube sola al abrir la app, como mucho una vez cada ${GH_HORAS} horas y solo si anotaste algo. <b>Traer el último</b> es lo que usas al estrenar teléfono.</p>`;
+}
+
 function vAjustes(){
   const c=S.cfg,t=targets();
   return `<h2>Ajustes</h2>
@@ -2543,6 +2791,9 @@ function vAjustes(){
   </div>
   <div class="card grid g3" id="statsAjustes">${statsAjustesHTML()}</div>
   <div class="note">Entre 0,4 y 0,8 kg por semana es la zona correcta. Más rápido que eso y una parte de lo que pierdes es músculo, justo lo que estamos tratando de construir.</div>
+  <h2>Respaldo automático</h2>
+  <div class="card" id="ghBox">${ghHTML()}</div>
+
   <h2>Datos</h2>
   <div class="card">
     <button class="act ghost" id="btnReset">Borrar todos mis registros</button>
@@ -2684,6 +2935,27 @@ document.addEventListener('click',e=>{
   if(b.id==='btnExp'){ const o=document.getElementById('expOut');
     o.value=expText(); o.classList.remove('hide'); o.select(); toast('Listo — copia y pégalo en el chat'); return; }
   if(b.id==='btnResp'){ guardarRespaldo(); return; }
+  if(b.id==='btnGhOn'){ ghConectar(); return; }
+  if(b.id==='btnGhOff'){
+    if(!confirm('¿Desconectar el respaldo automático?\n\nBorra el token de este teléfono. Lo que ya está subido en GitHub NO se toca.')) return;
+    ghApagar(); render(); toast('Respaldo automático desconectado'); return;
+  }
+  if(b.id==='btnGhSubir'){
+    b.disabled=true; b.textContent='Subiendo…';
+    ghSubir(false).then(r=>{
+      render();
+      toast(r.estado==='ok' ? `Subido — ${r.n} registros a salvo`
+        : r.estado==='encogio' ? 'No se subió: el respaldo de allá tiene más registros'
+        : r.estado==='sinred' ? 'Sin señal — se sube sola cuando vuelvas a abrirla'
+        : r.estado==='off' ? 'No hay respaldo automático conectado'
+        : `No se pudo subir: ${r.msg||''}`);
+    });
+    return;
+  }
+  if(b.id==='btnGhTraer'){
+    if(!confirm('Traer el último respaldo de GitHub REEMPLAZA lo que tienes en este teléfono.\n\n¿Seguir?')) return;
+    ghTraer(); return;
+  }
   if(b.id==='btnJson'){
     /* El JSON se arma ANTES de marcar la fecha, para que el respaldo que se
        lleva no venga diciendo que ya estaba respaldado. Después se redibuja,
@@ -2935,5 +3207,7 @@ async function registrarSW(){
   }catch(e){ /* sin service worker la app funciona igual, solo que sin modo sin conexión */ }
 }
 
-(async function init(){ await load(); dia = diaSugerido(); render(); registrarSW(); })();
+(async function init(){ await load(); dia = diaSugerido(); render(); registrarSW(); ghAuto(); })();
+/* y al volver a la app: es cuando acaba de anotar algo y cierra */
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') ghAuto(); });
 </script>
