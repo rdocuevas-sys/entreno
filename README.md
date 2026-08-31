@@ -24,11 +24,45 @@ recupera con **Resumen → Restaurar respaldo**.
 
 | Archivo | Qué hace |
 |---|---|
-| `index.html` | Toda la app: estilos, ilustraciones SVG, lógica y datos del plan |
+| `index.html` | Toda la app: estilos, lógica y datos del plan |
+| `ejercicios.js` | Ilustraciones de los ejercicios y el mapa muscular |
+| `alimentos.js` | Tabla de alimentos con sus macros y porciones caseras |
 | `sw.js` | Service worker: guarda la app para uso sin señal y controla las actualizaciones |
 | `manifest.webmanifest` | Nombre, íconos y colores con que se instala |
 | `fonts/` | Tipografías locales (Barlow Condensed, Inter, IBM Plex Mono) para que se vea bien sin conexión |
 | `icons/` | Íconos de la pantalla de inicio |
+
+## El registro de comida
+
+La pestaña **Comida** pedía kcal, proteína, carbos y grasa escritos a mano, que
+es justo el dato que nadie tiene al terminar de almorzar. Ahora se escribe lo que
+se comió, con su hora, en lenguaje normal —`2 huevos duros`, `un litro de agua`,
+`una taza de arroz con un pedazo de carne`— y la app estima.
+
+**Cómo funciona.** `alimentos.js` tiene los alimentos con sus macros **por 100 g**
+(cocidos donde corresponde) y sus medidas caseras en gramos: una taza de arroz son
+180 g, un huevo 55 g, una marraqueta 100 g. El texto se normaliza (sin tildes, sin
+ñ, en minúscula) sólo **para comparar**; lo que se guarda y se muestra es lo que
+escribió el usuario.
+
+**Una línea puede traer varias cosas.** Se corta por coma, por `y` y también por
+`con`, porque «arroz con un pedazo de carne» son dos alimentos. El costo de esa
+regla es que «café con leche» se partiría en dos, así que va como fila propia en la
+tabla y se busca entera antes de cortar nada.
+
+**Lo que no se reconoce NO se inventa.** Queda guardado con el texto tal cual,
+marcado `sin estimar` y con los macros en `null` — nunca en cero, que sería un
+total falsamente completo. Esos registros salen señalados en el resumen exportado
+para estimarlos y agregarlos a la tabla.
+
+**Los totales del día se calculan**, no se escriben. Si se escribe un total a mano
+(la etiqueta de un envase, por ejemplo), ése manda y la app lo dice; «volver al
+calculado» **borra** la corrección en vez de dejar un cero.
+
+**Precisión, dicho de frente:** son valores de referencia y las porciones caseras
+son promedios. «Un pedazo de carne» está entre 80 y 250 g en el mundo real y
+ninguna tabla arregla eso; por eso cada registro se puede ajustar. Lo que importa
+para recomposición es estimar siempre igual, no acertar al gramo.
 
 ## Probar en local
 

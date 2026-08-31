@@ -282,6 +282,29 @@
   /* ---- gráficos ---- */
   /* el SVG escala también sus textos: sin tope, en pantalla ancha el gráfico
      se ve gigante y las etiquetas enormes */
+  /* la fila de "qué comiste": el texto manda y se estira, la hora y el botón
+     conservan su tamaño; bajo 380 px el botón cae solo a la línea siguiente */
+  .addcom{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  /* cada cosa que comió, en dos líneas: arriba la hora y el texto suyo,
+     abajo la cantidad, lo que se reconoció y el estimado */
+  .com-item{border-top:1px solid var(--line);padding:9px 0}
+  .com-item:first-child{border-top:0;padding-top:0}
+  .com-l1{display:flex;gap:8px;align-items:baseline}
+  .com-hora{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate);
+            flex:0 0 40px}
+  .com-txt{flex:1 1 auto;min-width:0;font-size:14.5px;overflow-wrap:anywhere}
+  .com-l1 button{flex:0 0 auto}
+  .com-l2{display:flex;gap:9px;align-items:center;flex-wrap:wrap;
+          margin-top:5px;padding-left:48px}
+  .com-cant{display:flex;align-items:center;gap:3px;font-size:12px;color:var(--ink-2)}
+  .com-l2 input{width:52px;padding:4px 6px;font-size:13px}
+  .com-det{font-size:11.5px;color:var(--ink-2)}
+  .com-num{margin-left:auto;display:flex;gap:5px;align-items:center;
+           font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+           color:var(--pine);font-weight:600}
+  .addcom input[type=text]{flex:1 1 170px;min-width:0}
+  .addcom input[type=time]{flex:0 0 112px}
+  .addcom button{flex:0 0 auto}
   .graf{margin:4px 0 14px;max-width:430px}
   .graf svg{width:100%;height:auto;display:block}
   .graf-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
@@ -328,6 +351,7 @@
      tienen por qué estorbar la lectura de este. Si no carga, la app sigue
      andando con los dibujos de palitos de más abajo. -->
 <script src="./ejercicios.js"></script>
+<script src="./alimentos.js"></script>
 <script>
 /* ============================================================
    1. DIBUJO DE EJERCICIOS  (SVG generado, sin imágenes externas)
@@ -903,7 +927,12 @@ const DEF = {
   semana:1,      /* solo respaldo: la semana de verdad sale de la fecha, ver semanaDe() */
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
   cardio:[],   // {f,sem,dia,tipo,min,metros,kcal,nota} — tipo = la modalidad que eligió
-  comida:[],   // {f,sem,tipo,kcal,p,c,g,agua,ayuno,adh,txt,nota}
+  comida:[],   // {f,sem,tipo,kcal,p,c,g,agua,ayuno,adh,txt,nota} — kcal/p/c/g/agua
+               //   ya NO se escriben a mano: si están, son una CORRECCIÓN que
+               //   pisa la suma del día. Ver comidaDia().
+  alimentos:[],// {rid,f,sem,hora,txt,alim,nombre,n,unidad,gramos,ok,kcal,p,c,g,agua}
+               //   lo que comió, registro por registro y con su hora. `ok:0` es
+               //   "no lo reconocí": sus macros van en null, NUNCA en cero.
   medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota} — UNO POR FECHA
   sesiones:[]  // {f,sem,dia,sueno,zona,dolor,nota} — cómo llegaste a entrenar
 };
@@ -929,6 +958,8 @@ async function load(){
   /* el cfg guardado reemplaza entero al de fábrica: hay que reponer las claves
      nuevas o quedan en undefined */
   S.cfg = Object.assign(JSON.parse(JSON.stringify(DEF.cfg)), S.cfg||{});
+  /* un respaldo anterior al registro por comidas no trae la lista */
+  if(!Array.isArray(S.alimentos)) S.alimentos = [];
   if(!fechaMs(S.cfg.inicio)){
     /* Primera vez con semanas automáticas. El plan empezó el día del registro
        más antiguo que exista; si no hay ninguno, hoy. No se toca ningún dato:
@@ -1516,45 +1547,329 @@ function vHoy(){
   return h;
 }
 
+/* ============================================================
+   3f. LO QUE COMÍ — de texto a números
+   ------------------------------------------------------------
+   Escribe "2 huevos duros" o "una taza de arroz con un pedazo de
+   carne" y esto lo convierte en gramos y macros usando ALIMENTOS.
+
+   Lo que NO reconoce NO se inventa: queda guardado con el texto
+   tal cual y marcado como sin estimar, y sale señalado en el
+   export para completarlo después. Un cero silencioso sería peor
+   que un hueco visible.
+   ============================================================ */
+
+/* Sin tildes, sin ñ y sin puntuación: así "plátano", "platano" y
+   "PLÁTANOS" caen en la misma fila de la tabla. */
+function normTxt(s){
+  return String(s==null?'':s).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\/.,+; ]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+
+/* Unidades que valen para CUALQUIER alimento, porque son de peso o de
+   volumen y no medidas caseras. El resto sale de `med` de cada fila. */
+const MED_GLOBAL = {g:1, kg:1000, ml:1, litro:1000};
+
+/* índice nombre -> alimento, construido una sola vez */
+let _IDX = null;
+function idxAlimentos(){
+  if(_IDX) return _IDX;
+  _IDX = [];
+  if(typeof ALIMENTOS === 'undefined') return _IDX;
+  ALIMENTOS.forEach(a=>{
+    const claves = [a.id, a.n].concat(a.alt||[]);
+    claves.forEach(k=>{ const t=normTxt(k); if(t) _IDX.push({t, a}); });
+  });
+  /* de mayor a menor: "mantequilla de mani" tiene que ganarle a "mantequilla",
+     o toda crema de maní se registraría como mantequilla */
+  _IDX.sort((x,y)=>y.t.length-x.t.length);
+  return _IDX;
+}
+
+/* singular tosco: solo para comparar, nunca para mostrar */
+const sing = t => t.replace(/([a-z]{3,})es\b/g,'$1').replace(/([a-z]{3,})s\b/g,'$1');
+
+/* `estricto` corta el match por CONTENIDO y deja solo el exacto y el plural.
+   Sin eso, "una taza de arroz con un pedazo de carne" se daba por reconocida
+   entera —porque contiene la palabra "carne"— y el arroz desaparecia. */
+function buscarAlimento(txt, estricto){
+  const t = normTxt(txt); if(!t) return null;
+  const idx = idxAlimentos();
+  let hit = idx.find(x=>x.t===t);                          /* exacto */
+  if(!hit){ const s=sing(t); hit = idx.find(x=>sing(x.t)===s); }   /* plural */
+  if(!hit && !estricto){
+    /* contenido, pero solo con palabra completa y claves de 4+ letras:
+       si no, "te" caza dentro de "tomate" y todo se vuelve un té */
+    hit = idx.find(x=>x.t.length>=4 &&
+      new RegExp('(^| )'+x.t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'( |$)').test(t));
+    if(!hit){ const s=sing(t); hit = idx.find(x=>x.t.length>=4 &&
+      new RegExp('(^| )'+sing(x.t).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'( |$)').test(s)); }
+  }
+  return hit ? hit.a : null;
+}
+
+/* medida escrita -> clave de `med` */
+let _MED = null;
+function idxMedidas(){
+  if(_MED) return _MED;
+  _MED = {};
+  if(typeof MEDIDAS !== 'undefined')
+    Object.keys(MEDIDAS).forEach(k=>MEDIDAS[k].forEach(v=>{ _MED[normTxt(v)] = k; }));
+  return _MED;
+}
+
+/* Parte una línea en varios registros.
+   Los separadores duros son la coma, el punto y coma, el "+" y el " y ".
+   El " con " TAMBIÉN separa, y es a propósito: "una taza de arroz con un
+   pedazo de carne" son dos cosas. El costo es que "café con leche" se
+   partiría en dos, así que ese va como fila propia en la tabla y se
+   busca ENTERO antes de cortar nada. */
+function trozosComida(linea){
+  const t = normTxt(linea);
+  if(!t) return [];
+  /* Si lo que queda DESPUÉS de la cantidad es exactamente un alimento de la
+     tabla, la línea es una sola cosa y no se corta: "2 cafe con leche" son
+     dos cortados, no "2 cafe" y "leche". El match acá es ESTRICTO a
+     propósito — con el de contenido, "arroz con carne" se quedaría entero
+     y el arroz se perdería. */
+  const q = partirCantidad(t);
+  if(q.nombre && buscarAlimento(q.nombre, true)) return [t];
+  return t.split(/\s*[,;+]\s*|\s+y\s+|\s+con\s+/)
+          .map(x=>x.trim()).filter(Boolean);
+}
+
+/* "2 huevos duros" -> {n:2, unidad:null, nombre:'huevos duros'} */
+function partirCantidad(t){
+  let s = normTxt(t), n = null;
+  let m = s.match(/^(\d+)\s*\/\s*(\d+)\s+(.*)$/);            /* 1/2 palta */
+  if(m && +m[2]!==0){ n = +m[1]/+m[2]; s = m[3]; }
+  if(n===null){
+    m = s.match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);               /* 2 huevos · 150 g */
+    if(m){ n = parseFloat(m[1].replace(',','.')); s = m[2]; }
+  }
+  if(n===null){
+    m = s.match(/^([a-z]+)\s+(.*)$/);                        /* dos huevos */
+    if(m && typeof CANTIDADES!=='undefined' && CANTIDADES[m[1]]!==undefined){
+      n = CANTIDADES[m[1]]; s = m[2];
+    }
+  }
+  const implicita = n===null;
+  if(implicita) n = 1;
+
+  /* unidad, con el "de" opcional detrás: "taza de arroz" */
+  const med = idxMedidas();
+  let unidad = null;
+  const p = s.split(' ');
+  if(p.length>1 && med[p[0]]){ unidad = med[p[0]]; p.shift(); }
+  if(p[0]==='de') p.shift();
+  return {n, unidad, nombre:p.join(' ').trim(), implicita};
+}
+
+/* Un registro estimado. Devuelve SIEMPRE algo: si no reconoce el
+   alimento, `ok:0` y los macros en null, nunca en cero. */
+function estimarComida(texto){
+  const {n, unidad, nombre} = partirCantidad(texto);
+  const a = buscarAlimento(nombre);
+  const base = {txt:String(texto).trim(), n, unidad, ok:0,
+                id:'', kcal:null, p:null, c:null, g:null, agua:null};
+  if(!a) return base;
+
+  const porUnidad = (a.med && a.med[unidad]) ?? MED_GLOBAL[unidad] ??
+                    (a.med ? a.med[a.def] : 1);
+  /* unidad que esa fila no conoce ("una taza de huevo"): se usa su medida
+     por defecto y se DICE que es aproximado, en vez de fingir precisión */
+  const aprox = !!(unidad && !(a.med && a.med[unidad]) && !MED_GLOBAL[unidad]);
+  const gramos = n * porUnidad;
+  const f = gramos/100;
+  return {...base, ok:1, id:a.id, nombre:a.n, gramos:Math.round(gramos), aprox,
+          unidad: unidad || a.def,
+          kcal:+(a.kcal*f).toFixed(0), p:+(a.p*f).toFixed(1),
+          c:+(a.c*f).toFixed(1), g:+(a.gr*f).toFixed(1),
+          agua: a.agua ? +(gramos/1000).toFixed(2) : null};
+}
+
+/* Una línea puede traer varias cosas: devuelve un registro por cada una. */
+function estimarLinea(linea){
+  const out = trozosComida(linea).map(estimarComida);
+  /* Si la línea era UNA sola cosa, se guarda TAL COMO ÉL LA ESCRIBIÓ —con sus
+     tildes y sus mayúsculas— y no la versión normalizada que se usó para
+     buscarla: normalizar es para comparar, no para mostrar. Si traía varias,
+     no hay forma de recortar el original y se queda la normalizada. */
+  if(out.length===1) out[0].txt = String(linea).trim();
+  return out;
+}
+
+/* ---- del texto al registro guardado ---- */
+const horaAhora = () => { const d=new Date(), dos=n=>String(n).padStart(2,'0');
+  return `${dos(d.getHours())}:${dos(d.getMinutes())}`; };
+const ridCorto = () => 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+/* El texto lo escribe él y se pinta con innerHTML: un "<" suelto rompería la
+   tabla entera. */
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* Recalcula un registro cuando cambia la cantidad. No toca los que no
+   reconoció: esos llevan las kcal que él escribió a mano, si escribió alguna. */
+function reestimar(r){
+  if(!r.alim || typeof ALIMENTOS === 'undefined') return;
+  const a = ALIMENTOS.find(x=>x.id===r.alim); if(!a) return;
+  const porUnidad = (a.med && a.med[r.unidad]) ?? MED_GLOBAL[r.unidad] ?? a.med[a.def];
+  const gramos = nz(r.n)*porUnidad, k = gramos/100;
+  r.gramos = Math.round(gramos);
+  r.kcal = +(a.kcal*k).toFixed(0); r.p = +(a.p*k).toFixed(1);
+  r.c = +(a.c*k).toFixed(1);       r.g = +(a.gr*k).toFixed(1);
+  r.agua = a.agua ? +(gramos/1000).toFixed(2) : null;
+}
+
+/* ---- lo que comió un día ----
+   Si escribió un total a mano manda el suyo; si no, manda la suma de lo que
+   registró. Nunca los dos a la vez: dos números para lo mismo es el defecto
+   que ya costó caro con el peso, cuando `cfg.peso` y `medidas[].peso` no se
+   hablaban y anotar el peso donde correspondía no recalculaba nada. */
+function itemsDia(f){ return (S.alimentos||[]).filter(x=>x.f===f); }
+function comidaDia(f){
+  const d = S.comida.find(x=>x.f===f) || {};
+  const it = itemsDia(f);
+  const suma = k => it.reduce((a,x)=>a+nz(x[k]),0);
+  const calc = {kcal:Math.round(suma('kcal')), p:+suma('p').toFixed(1),
+                c:+suma('c').toFixed(1), g:+suma('g').toFixed(1),
+                agua:+suma('agua').toFixed(2)};
+  const man = {};
+  ['kcal','p','c','g','agua'].forEach(k=>{ if(nz(d[k])>0) man[k]=nz(d[k]); });
+  const val = k => man[k]!==undefined ? man[k] : (it.length ? calc[k] : null);
+  return {f, d, items:it, calc, man, hayMan:Object.keys(man).length>0,
+          kcal:val('kcal'), p:val('p'), c:val('c'), g:val('g'), agua:val('agua'),
+          sinEstimar: it.filter(x=>!x.ok).length};
+}
+
+function agregarComida(){
+  const inp = document.getElementById('comeTxt');
+  const hora = (document.getElementById('comeHora')||{}).value || horaAhora();
+  const txt = (inp && inp.value || '').trim();
+  if(!txt){ if(inp) inp.focus(); return; }
+  const partes = (typeof estimarLinea === 'function') ? estimarLinea(txt) : [];
+  /* Sin la tabla cargada igual se guarda: mejor un registro sin estimar que
+     perder lo que escribió. */
+  const filas = partes.length ? partes : [{txt, n:1, unidad:'', ok:0,
+                    id:'', kcal:null, p:null, c:null, g:null, agua:null}];
+  filas.forEach(x=>{
+    S.alimentos.push({rid:ridCorto(), f:hoy(), sem:semanaHoy(), hora,
+      txt:x.txt, alim:x.id||'', nombre:x.nombre||'', n:x.n, unidad:x.unidad||'',
+      gramos:(x.gramos===undefined?null:x.gramos), ok:x.ok, aprox:x.aprox?1:0,
+      kcal:x.kcal, p:x.p, c:x.c, g:x.g, agua:x.agua});
+  });
+  saveNow(); render();
+  const sin = filas.filter(x=>!x.ok).length;
+  toast(sin ? `Anotado — ${sin} sin estimar` :
+              `Anotado: ${filas.map(x=>x.nombre||x.txt).join(' + ')}`);
+  const i2 = document.getElementById('comeTxt'); if(i2) i2.focus();
+}
+
+
 /* ---------- COMIDA ---------- */
 function vComida(){
   const t=targets();
-  const d = S.comida.find(x=>x.f===hoy()) || {};
+  const f=hoy();
+  const cd=comidaDia(f);
+  const d=cd.d;
   const pct=(v,o)=>Math.min(100,Math.round(nz(v)/o*100));
   const objKcal = d.tipo==='Alto'?t.alto : d.tipo==='Bajo'?t.bajo : t.kcal;
+
   let h=`<h2>Comida de hoy</h2>
-  <p class="lede">Un registro por día. No necesitas pesar todo con precisión de laboratorio — necesitas ser consistente en cómo estimas.</p>
+  <p class="lede">Anótalo cuando lo comas y como lo dirías en voz alta: <b>2 huevos duros</b>, <b>un litro de agua</b>, <b>una taza de arroz con un pedazo de carne</b>. Las calorías y la proteína las estima la app — tú no tienes que saberlas.</p>
   <div class="card">
-    <div class="grid g2" style="margin-bottom:12px">
-      <div><label>Fecha</label><input type="date" data-com="f" value="${d.f||hoy()}"></div>
+    <div class="addcom">
+      <input type="text" id="comeTxt" autocomplete="off" placeholder="2 huevos duros">
+      <input type="time" id="comeHora" value="${horaAhora()}">
+      <button class="act" id="btnCome">Agregar</button>
+    </div>
+    <p class="prev" style="margin:9px 0 0">Van varias cosas juntas separadas por coma o por «y». Si algo no lo conoce, igual queda anotado y sale marcado para que yo lo estime.</p>
+  </div>
+
+  <h2>Va del día</h2>
+  <div class="card">
+    <div class="eyebrow" id="lblKcal">Calorías · objetivo ${objKcal}</div>
+    <div class="bar"><i id="barKcal" class="${nz(cd.kcal)>objKcal*1.05?'over':''}" style="width:${pct(cd.kcal,objKcal)}%"></i></div>
+    <div class="eyebrow" id="lblProt" style="margin-top:10px">Proteína · objetivo ${t.p} g</div>
+    <div class="bar"><i id="barProt" style="width:${pct(cd.p,t.p)}%"></i></div>
+    <div class="grid g4" style="margin-top:14px">
+      <div class="stat"><b>${cd.kcal??'—'}</b><small>kcal</small></div>
+      <div class="stat"><b>${cd.p??'—'} g</b><small>proteína</small></div>
+      <div class="stat"><b>${cd.c??'—'} g</b><small>carbos</small></div>
+      <div class="stat"><b>${cd.g??'—'} g</b><small>grasa</small></div>
+      <div class="stat"><b>${cd.agua??'—'} L</b><small>agua</small></div>
+      <div class="stat"><b>${cd.items.length}</b><small>registros hoy</small></div>
+    </div>
+    <p class="prev" style="margin:10px 0 0">${
+      cd.hayMan ? 'Estás usando un total escrito a mano; manda ese y no la suma.'
+      : cd.items.length ? `Sumado de tus ${cd.items.length} registros de hoy.${cd.sinEstimar?` <b class="sube">${cd.sinEstimar} sin estimar</b>, así que el total va corto.`:''}`
+      : 'Todavía no has anotado nada hoy.'}</p>
+    <div style="margin-top:12px">
+      <button class="act ghost" id="btnManual">${cd.hayMan?'Ver el total a mano':'Corregir el total a mano'}</button>
+      ${cd.hayMan?`<button class="act ghost" id="btnAuto" style="margin-left:8px">Volver al calculado</button>`:''}
+    </div>
+    <div id="manualBox" class="${cd.hayMan?'':'hide'}" style="margin-top:12px">
+      <p class="prev" style="margin:0 0 8px">Solo si tienes el dato de verdad — la etiqueta de un envase, por ejemplo. Lo que escribas acá pisa la suma del día.</p>
+      <div class="grid g4">
+        <div><label>Kcal</label><input type="number" inputmode="numeric" data-com="kcal" value="${d.kcal??''}"></div>
+        <div><label>Proteína g</label><input type="number" inputmode="numeric" data-com="p" value="${d.p??''}"></div>
+        <div><label>Carbos g</label><input type="number" inputmode="numeric" data-com="c" value="${d.c??''}"></div>
+        <div><label>Grasa g</label><input type="number" inputmode="numeric" data-com="g" value="${d.g??''}"></div>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
       <div><label>Tipo de día</label><select data-com="tipo">
         ${['Alto','Normal','Bajo'].map(x=>`<option ${d.tipo===x?'selected':''}>${x}</option>`).join('')}
       </select></div>
-    </div>
-    <div class="grid g4">
-      <div><label>Kcal</label><input type="number" inputmode="numeric" data-com="kcal" value="${d.kcal??''}"></div>
-      <div><label>Proteína g</label><input type="number" inputmode="numeric" data-com="p" value="${d.p??''}"></div>
-      <div><label>Carbos g</label><input type="number" inputmode="numeric" data-com="c" value="${d.c??''}"></div>
-      <div><label>Grasa g</label><input type="number" inputmode="numeric" data-com="g" value="${d.g??''}"></div>
-    </div>
-    <div style="margin-top:14px">
-      <div class="eyebrow" id="lblKcal">Calorías · objetivo ${objKcal}</div>
-      <div class="bar"><i id="barKcal" class="${nz(d.kcal)>objKcal*1.05?'over':''}" style="width:${pct(d.kcal,objKcal)}%"></i></div>
-      <div class="eyebrow" id="lblProt" style="margin-top:10px">Proteína · objetivo ${t.p} g</div>
-      <div class="bar"><i id="barProt" style="width:${pct(d.p,t.p)}%"></i></div>
-    </div>
-    <div class="grid g3" style="margin-top:14px">
-      <div><label>Agua L</label><input type="number" inputmode="decimal" step="0.1" data-com="agua" value="${d.agua??''}"></div>
       <div><label>Ayuno h</label><input type="number" inputmode="numeric" data-com="ayuno" value="${d.ayuno??''}"></div>
       <div><label>Adherencia 1-5</label><input type="number" inputmode="numeric" min="1" max="5" data-com="adh" value="${d.adh??''}"></div>
     </div>
-    <div style="margin-top:12px"><label>Qué comí</label>
-      <textarea rows="3" data-com="txt" placeholder="Desayuno: 4 huevos + avena 80 g…">${d.txt||''}</textarea></div>
     <div style="margin-top:10px"><label>Hambre, energía, notas</label>
-      <input data-com="nota" value="${d.nota||''}"></div>
+      <input data-com="nota" value="${esc(d.nota||'')}"></div>
   </div>
 
-  <h2>Tus números</h2>
+  <h2>Lo que anotaste hoy</h2>`;
+
+  if(!cd.items.length){
+    h+=`<div class="card"><p class="prev" style="margin:0">Nada todavía. Anota arriba lo primero que comas o tomes.</p></div>`;
+  }else{
+    /* Filas de DOS líneas y no una tabla: con seis columnas en 414 px el
+       texto se parte en tres líneas y el botón de borrar queda cortado contra
+       el borde. Se vio mirando el render, no leyendo el código. */
+    h+=`<div class="card">`;
+    /* de la más reciente hacia atrás: lo último que comió es lo que va a
+       querer corregir */
+    cd.items.slice().sort((a,b)=>String(b.hora||'').localeCompare(String(a.hora||''))).forEach(x=>{
+      h+=`<div class="com-item">
+        <div class="com-l1">
+          <span class="com-hora">${esc(x.hora||'—')}</span>
+          <span class="com-txt">${esc(x.txt)}</span>
+          <button class="lnk del" data-comeborrar="${x.rid}" aria-label="Borrar">✕</button>
+        </div>
+        <div class="com-l2">
+          <span class="com-cant">×<input type="number" inputmode="decimal" step="0.5"
+               data-comen="${x.rid}" value="${x.n??''}" aria-label="Cantidad"></span>`;
+      if(x.ok){
+        h+=`<span class="com-det">${esc(x.nombre)} · ${x.gramos} g${x.aprox?' (aprox.)':''}</span>
+            <span class="com-num">${x.kcal} kcal · ${coma(x.p)} g prot</span>`;
+      }else{
+        h+=`<span class="com-det sube">sin estimar</span>
+            <span class="com-num">
+              <input type="number" inputmode="numeric" data-comekcal="${x.rid}"
+                     value="${x.kcal??''}" placeholder="kcal" aria-label="Kcal a mano">
+              <input type="number" inputmode="numeric" data-comep="${x.rid}"
+                     value="${x.p??''}" placeholder="prot" aria-label="Proteína a mano">
+            </span>`;
+      }
+      h+=`</div></div>`;
+    });
+    if(cd.sinEstimar) h+=`<p class="prev" style="margin:10px 0 0">Los que dicen <b>sin estimar</b> no están en la tabla de alimentos. Puedes ponerles tú las kcal y la proteína ahí mismo, o dejarlos así: salen marcados en el resumen para que yo los estime y los agregue.</p>`;
+    h+=`</div>`;
+  }
+
+  h+=`  <h2>Tus números</h2>
   <div class="card grid g3">
     <div class="stat"><b>${t.kcal}</b><small>kcal objetivo</small></div>
     <div class="stat"><b>${t.p} g</b><small>proteína</small></div>
@@ -1697,7 +2012,11 @@ function weekAgg(w){
   const ses=new Set(f.filter(x=>nz(x.reps)>0).map(x=>x.f)).size;
   const c=S.cardio.filter(x=>semanaDe(x.f)===w);
   const min=c.reduce((a,x)=>a+nz(x.min),0);
-  const co=S.comida.filter(x=>semanaDe(x.f)===w && nz(x.kcal)>0);
+  /* Los días con comida salen de las DOS listas: desde que las kcal se
+     calculan, un día puede tener registros y ninguna fila en S.comida. */
+  const diasCom=[...new Set([...S.comida.map(x=>x.f),...(S.alimentos||[]).map(x=>x.f)])]
+                 .filter(x=>semanaDe(x)===w);
+  const co=diasCom.map(comidaDia).filter(x=>nz(x.kcal)>0);
   const avg=(k)=>co.length?Math.round(co.reduce((a,x)=>a+nz(x[k]),0)/co.length):null;
   const m=medidaSemana(w);
   const se=S.sesiones.filter(x=>semanaDe(x.f)===w);
@@ -1705,7 +2024,7 @@ function weekAgg(w){
   const sueno = cs.length ? +(cs.reduce((a,x)=>a+nz(x.sueno),0)/cs.length).toFixed(1) : null;
   return {w,ses,vol:Math.round(vol),min,dias:co.length,sueno,
           kcal:avg('kcal'),p:avg('p'),c:avg('c'),g:avg('g'),
-          adh:co.length?(co.reduce((a,x)=>a+nz(x.adh),0)/co.length).toFixed(1):null,
+          adh:co.length?(co.reduce((a,x)=>a+nz(x.d.adh),0)/co.length).toFixed(1):null,
           peso:m.peso, cint:m.cint, pesajes:m.pesajes};
 }
 /* Cuántas sesiones SEGUIDAS vienes arrastrando la misma molestia. Una sesión
@@ -1805,6 +2124,8 @@ function expText(){
   /* las medidas también hacen semana: si solo te pesaste, esa semana igual sale */
   const weeks=[...new Set([...S.fuerza,...S.cardio,...S.comida,...S.medidas].map(x=>semanaDe(x.f)))].sort((a,b)=>a-b);
   let o=`RESUMEN DE ENTRENAMIENTO\n`;
+  const sinEst=(S.alimentos||[]).filter(x=>!x.ok).length;
+  if(sinEst) o+=`OJO: hay ${sinEst} registros de comida SIN ESTIMAR, marcados más abajo. Estímalos y agrégalos a la tabla de alimentos.\n`;
   o+=`Perfil: ${S.cfg.alt} cm · ${coma(un(pesoActual()))} kg · ${S.cfg.edad} años\n`;
   o+=`Objetivos: ${t.kcal} kcal / ${t.p} g prot / ${t.ch} g carb / ${t.g} g grasa\n\n`;
   weeks.forEach(w=>{
@@ -1819,6 +2140,18 @@ function expText(){
        modalidad la elige él es un dato y no un supuesto. */
     const car=S.cardio.filter(x=>semanaDe(x.f)===w && nz(x.min)>0);
     if(car.length) o+=`Cardio hecho: ${car.map(x=>`${fechaCorta(x.f)} ${x.tipo||'sin anotar'} ${nz(x.min)} min${nz(x.metros)?' · '+nz(x.metros)+' m':''}${nz(x.kcal)?' · '+nz(x.kcal)+' kcal':''}`).join(', ')}\n`;
+    /* La comida, registro por registro. Lo SIN ESTIMAR va marcado: es
+       exactamente lo que hay que completar desde el chat. */
+    const dc=[...new Set((S.alimentos||[]).filter(x=>semanaDe(x.f)===w).map(x=>x.f))].sort();
+    dc.forEach(fd=>{
+      const cdd=comidaDia(fd);
+      o+=`  Comida ${fechaCorta(fd)}: ${cdd.kcal??'-'} kcal · ${cdd.p??'-'} g prot · ${un(cdd.agua)??'-'} L agua${cdd.hayMan?' (total corregido a mano)':''}\n`;
+      cdd.items.slice().sort((a,b)=>String(a.hora||'').localeCompare(String(b.hora||''))).forEach(x=>{
+        o+=`    ${x.hora||'--:--'} ${x.txt}`;
+        o+= x.ok ? ` [${x.nombre} ${x.gramos} g = ${x.kcal} kcal, ${x.p} g prot]\n`
+                 : `   <-- SIN ESTIMAR${nz(x.kcal)>0?` (le puso ${x.kcal} kcal a mano)`:''}\n`;
+      });
+    });
     const ejs=[...new Set(S.fuerza.filter(x=>semanaDe(x.f)===w&&nz(x.reps)>0).map(x=>x.ej))];
     ejs.forEach(e=>{
       const st=S.fuerza.filter(x=>semanaDe(x.f)===w&&x.ej===e&&nz(x.reps)>0);
@@ -1912,15 +2245,15 @@ function refrescarCabecera(){
 function refrescarComida(){
   const lk=document.getElementById('lblKcal'); if(!lk) return;
   const t=targets();
-  const d=S.comida.find(x=>x.f===hoy())||{};
+  const cd=comidaDia(hoy());
   const pct=(v,o)=>Math.min(100,Math.round(nz(v)/o*100));
-  const objKcal = d.tipo==='Alto'?t.alto : d.tipo==='Bajo'?t.bajo : t.kcal;
+  const objKcal = cd.d.tipo==='Alto'?t.alto : cd.d.tipo==='Bajo'?t.bajo : t.kcal;
   lk.textContent = `Calorías · objetivo ${objKcal}`;
   const bk=document.getElementById('barKcal');
-  bk.style.width = pct(d.kcal,objKcal)+'%';
-  bk.className = nz(d.kcal)>objKcal*1.05?'over':'';
+  bk.style.width = pct(cd.kcal,objKcal)+'%';
+  bk.className = nz(cd.kcal)>objKcal*1.05?'over':'';
   document.getElementById('lblProt').textContent = `Proteína · objetivo ${t.p} g`;
-  document.getElementById('barProt').style.width = pct(d.p,t.p)+'%';
+  document.getElementById('barProt').style.width = pct(cd.p,t.p)+'%';
 }
 function refrescarAjustes(){
   const c=document.getElementById('statsAjustes');
@@ -1975,6 +2308,22 @@ document.addEventListener('click',e=>{
   if(b.dataset.day){ dia=b.dataset.day; render(); return; }
   if(b.dataset.toggle!==undefined){
     const a=b.closest('.ex'); a.dataset.open = a.dataset.open==='1'?'0':'1'; return;
+  }
+  if(b.id==='btnCome'){ agregarComida(); return; }
+  if(b.id==='btnManual'){ document.getElementById('manualBox').classList.toggle('hide'); return; }
+  if(b.id==='btnAuto'){
+    /* volver al calculado = BORRAR la corrección, no escribir un cero:
+       un cero seguiría siendo un total escrito a mano, y de 0 kcal */
+    const row=S.comida.find(x=>x.f===hoy());
+    if(row){ ['kcal','p','c','g','agua'].forEach(k=>{ delete row[k]; }); saveNow(); }
+    render(); toast('Vuelve a mandar la suma del día'); return;
+  }
+  if(b.dataset.comeborrar){
+    const r=(S.alimentos||[]).find(x=>x.rid===b.dataset.comeborrar);
+    if(!r) return;
+    if(!confirm(`¿Borrar «${r.txt}» de las ${r.hora||'—'}?`)) return;
+    S.alimentos = S.alimentos.filter(x=>x.rid!==r.rid);
+    saveNow(); render(); toast('Registro borrado'); return;
   }
   if(b.id==='btnExp'){ const o=document.getElementById('expOut');
     o.value=expText(); o.classList.remove('hide'); o.select(); toast('Listo — copia y pégalo en el chat'); return; }
@@ -2053,9 +2402,28 @@ function importar(){
    estás tocando a media edición — que es exactamente el defecto del 10-ago. */
 document.addEventListener('change',e=>{
   const el=e.target;
+  /* ⚠Estos van en `change` y NO en `input`: cambiarlos redibuja la tabla, y
+     redibujar desde el handler de `input` destruye el campo que se está
+     escribiendo — es el defecto del 10-ago que borraba lo tecleado. */
+  if(el.dataset.comen){
+    const r=(S.alimentos||[]).find(x=>x.rid===el.dataset.comen);
+    if(r){ r.n = el.value===''?0:+el.value; reestimar(r); saveNow(); render(); }
+    return;
+  }
+  if(el.dataset.comekcal || el.dataset.comep){
+    const cual = el.dataset.comekcal ? 'kcal' : 'p';
+    const rid = el.dataset.comekcal || el.dataset.comep;
+    const r=(S.alimentos||[]).find(x=>x.rid===rid);
+    if(r){ r[cual] = el.value===''?null:+el.value; saveNow(); render(); }
+    return;
+  }
   if(el.dataset.medfecha===undefined) return;
   if(isNaN(fechaMs(el.value))) return;   /* fecha a medio escribir */
   medFecha = el.value; render(); window.scrollTo(0,0);
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && e.target && e.target.id==='comeTxt'){ e.preventDefault(); agregarComida(); }
 });
 
 document.addEventListener('input',e=>{
