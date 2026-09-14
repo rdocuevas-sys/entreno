@@ -255,6 +255,9 @@ posterior:{
 const EJ_MUS = {
   dominada:{p:['upper_back'],s:['biceps','back_deltoids','forearm']},
   piernasColgado:{p:['abs'],s:['obliques','quadriceps','forearm']},
+  /* Sin dibujo a propósito (va en EJ_MUS pero NO en EJ_IMG): no existe ningún
+     abdominal colgado en la biblioteca aparte del leg-raise y el knee-raise. */
+  oblicuoColgado:{p:['obliques'],s:['abs','forearm','quadriceps']},
   banca:{p:['chest'],s:['triceps','front_deltoids']},
   militar:{p:['front_deltoids'],s:['triceps','upper_back']},
   militarDB:{p:['front_deltoids'],s:['triceps','abs']},

@@ -236,8 +236,8 @@ por NOMBRE y su historial tiene que seguir abriéndose.
 
 ### Ejercicios sin dibujo, a propósito
 
-Tres ejercicios del **día E** —*halo de rodillas*, *iron trident* y *marcha cargada
-a una mano*— **no existen en la biblioteca** y van deliberadamente sin ilustración:
+Cuatro ejercicios del **día E** —*halo de rodillas*, *iron trident*, *marcha cargada
+a una mano* y *elevación de rodillas oblicua colgado*— **no existen en la biblioteca** y van deliberadamente sin ilustración:
 la app muestra un aviso («Este no tiene dibujo en la biblioteca») y el botón de
 video apunta a su nombre en inglés mediante el campo `busca`, porque buscándolos en
 español no se encuentran. **Sí conservan su mapa muscular**: eso se consigue
