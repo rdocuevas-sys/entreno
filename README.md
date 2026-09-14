@@ -211,18 +211,32 @@ Licencia: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 **Cambios respecto del original:** el color pasó de blanco fijo a `currentColor`
 (para que tomen el color de la app y sirvan igual en modo claro y oscuro), y los
 números de cada trazo se redondearon a enteros con SVGO (`floatPrecision: 0`),
-que a este tamaño no se nota y baja el peso a la cuarta parte: los 35 ejercicios
-dibujados ocupan 436 KB en vez de los cerca de 2 MB que pesan los SVG originales.
-Los trazos así adaptados quedan bajo la misma licencia CC BY-SA 4.0.
+que a este tamaño no se nota y baja el peso a la cuarta parte: los **34 ejercicios
+dibujados** dejan `ejercicios.js` en **474 KB**, en vez de los cerca de 2 MB que
+pesan los SVG originales. Los trazos así adaptados quedan bajo la misma licencia
+CC BY-SA 4.0.
+
+El 14-sep-2026 se sumaron dos: **`pull-up`** para la dominada y
+**`hanging-leg-raise`** para la elevación de piernas colgado. El recorte del lienzo
+se hizo con el procedimiento de siempre —caja envolvente de los tres cuadros
+juntos más un 3 % de la dimensión mayor—, comprobado reproduciendo al píxel los
+`viewBox` que ya tenían `banca`, `tyson`, `remoDB` y `goblet`.
+
+⚠️Se descartaron mirando el render, no el nombre: `negative-pull-up` y
+`captains-chair-knee-raise` son siluetas macizas donde los tres cuadros se ven casi
+iguales, y `hanging-knee-raise` parece mejor en grande pero a los 135 px reales de
+la app sus cuadros 2 y 3 no se distinguen.
 
 Dos ejercicios NO usan estas ilustraciones y conservan el dibujo propio: el
 **pull-over**, que no existe en la biblioteca, y la **elevación de talones**,
 porque todas sus versiones traen una máquina o una barra al hombro y acá se hace
-con mancuernas y sin rack.
+con mancuernas y sin rack. ⚠️El pull-over **salió del plan** el 14-sep-2026 al
+entrar la dominada, pero su dibujo y su mapa se quedan: los registros se guardan
+por NOMBRE y su historial tiene que seguir abriéndose.
 
 ### Ejercicios sin dibujo, a propósito
 
-Tres ejercicios del **día F** —*halo de rodillas*, *iron trident* y *marcha cargada
+Tres ejercicios del **día E** —*halo de rodillas*, *iron trident* y *marcha cargada
 a una mano*— **no existen en la biblioteca** y van deliberadamente sin ilustración:
 la app muestra un aviso («Este no tiene dibujo en la biblioteca») y el botón de
 video apunta a su nombre en inglés mediante el campo `busca`, porque buscándolos en

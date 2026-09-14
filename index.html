@@ -785,11 +785,14 @@ const DAYS = [
   {id:'B', name:'Tirón + lumbar',sub:'Espalda · lumbares · bíceps'},
   {id:'C', name:'Piernas + core',sub:'Cuádriceps · glúteo · core'},
   {id:'D', name:'Full body',     sub:'Cuerpo completo + cardio largo'},
-  {id:'E', name:'Cardio + core', sub:'Opcional · zona media'},
-  /* El F queda FUERA de la rueda A-E a propósito: es un día suelto que haces
-     cuando quieras, y entrenarlo no adelanta la rotación — si hacer kettlebell
-     un martes te corriera el turno, te saltarías el día de piernas. */
-  {id:'F', name:'Kettlebell',    sub:'Core · brazos · suelto', opt:1}
+  {id:'E', name:'Core + kettlebell', sub:'Zona media cargada · brazos'},
+  /* ⚠El día F se FUSIONÓ con el E el 14-sep-2026 y ya no se puede elegir, pero
+     NO se borra: si alguna sesión quedó anotada con día F, borrarlo dejaría a
+     esos registros apuntando a un día inexistente. diaSugerido() devuelve el
+     día de hoy si ya empezaste, así que un F de hoy llegaría a vHoy() y
+     PLAN['F'] sería undefined: la app no abriría. Se queda retirado — fuera de
+     la rueda (opt) y fuera de los botones (retirado) — con su PLAN intacto. */
+  {id:'F', name:'Kettlebell',    sub:'Retirado · se fusionó con el día E', opt:1, retirado:1}
 ];
 /* La rueda que sigue el "hoy te toca el día X" son solo los días fijos. */
 const DIAS_ROT = DAYS.filter(d=>!d.opt);
@@ -817,14 +820,20 @@ A:[
   c:'Es enfriamiento, no entrenamiento: ritmo conversacional, tienes que poder hablar en frases completas. Elige abajo lo que hiciste y anota los minutos reales — la modalidad da lo mismo, lo que importa es que sea suave.'}
 ],
 B:[
+ {n:'Dominada en la barra',s:4,r:'6-8',rir:1,rest:'2 min',d:'dominada',
+  c:'Va PRIMERA y eso es a propósito: es el ejercicio en el que vas a progresar este ciclo, y en dominadas solo se progresa fresco. Además el rumano y el remo te dejan el agarre cocido, y colgado el agarre es lo primero que falla. Agarre prono —palmas hacia adelante— un poco más ancho que los hombros, con el pulgar rodeando la barra y no al lado de los otros dedos. Tu barra está a 2,50 m: ponte un cajón o algo firme para alcanzarla, porque llegar de un salto cada serie te gasta justo lo que necesitas para la última repetición. Cuelga con los brazos estirados del todo y los hombros ACTIVOS: antes de tirar, hunde los hombros hacia abajo como si quisieras alejar las orejas de las manos. Ese pequeño gesto es el que enciende el dorsal; si te quedas colgando como un saco, el tirón sale todo de bíceps y de la articulación. Sube llevando los codos hacia las costillas hasta que la barbilla pase la barra y baja en 2-3 segundos hasta estirar los brazos por completo — la bajada lenta es la mitad del ejercicio y es donde casi todos hacen trampa. Nada de patear ni de balancearse: si necesitas impulso, se acabó la serie. Aprieta el glúteo y el abdomen para que el cuerpo quede rígido, y cruza los pies atrás. Con 6-8 vas justo donde debes estar; cuando saques 8 limpias en las CUATRO series, el escalón NO son más repeticiones: es colgarte peso con una mochila. Ojo con el dibujo: los tres cuadros van de arriba hacia abajo, o sea el primero es la barbilla sobre la barra y el último es el colgado del que se parte.'},
  {n:'Peso muerto rumano con barra',s:4,r:'8-10',rir:2,rest:'2-3 min',d:'rdl',
   c:'El ejercicio clave para tu zona lumbar. Rodillas casi fijas, cadera hacia atrás, espalda neutra, barra rozando la pierna. Baja hasta sentir el isquiotibial, no más.'},
  {n:'Remo con barra inclinado',s:4,r:'8-10',rir:2,rest:'2 min',d:'remoBarra',
   c:'Torso a unos 45°, espalda plana. Tira la barra hacia el ombligo, no hacia el pecho. Aprieta las escápulas al final.'},
  {n:'Remo con mancuerna a una mano',s:3,r:'12-15',rir:1,rest:'90 s',d:'remoDB',
   c:'Rodilla y mano apoyadas en la banca. Con 10 kg, haz pausa de 1 segundo arriba en cada repetición.'},
- {n:'Pull-over con mancuerna',s:3,r:'12',rir:1,rest:'90 s',d:'pullover',
-  c:'Acostado atravesado en la banca, cadera baja. Lleva la mancuerna por detrás de la cabeza buscando el estiramiento del dorsal.'},
+ /* ⚠Salió el pull-over con mancuerna (14-sep-2026) al entrar la dominada.
+    Ocupaban la misma casilla —extensión de hombro sobre el dorsal— y de las
+    dos, la dominada carga tu peso entero y tiene con qué subir. Era además
+    uno de los dos que seguían con dibujo de palitos porque no existe en la
+    biblioteca. Su entrada en EJ_IMG/EJ_MUS se queda: los registros viejos se
+    guardan por NOMBRE y tienen que seguir abriendo su historial. */
  {n:'Peso muerto rumano a una pierna con mancuernas',s:3,r:'10-12 x pierna',rir:2,rest:'90 s',d:'rdl1p',
   c:'Va en lugar de los buenos días, que también pedían la barra sobre los hombros. De pie sobre una pierna, la otra se estira hacia atrás mientras el torso baja: cadera y hombros bajan juntos, como una balanza. Peso liviano y espalda neutra. Trabaja los erectores y además te corrige la diferencia entre un lado y el otro. Puedes afirmarte con una mano en la banca.'},
  {n:'Curl con barra de tríceps',s:3,r:'10-12',rir:1,rest:'60 s',d:'curl',
@@ -861,6 +870,8 @@ D:[
   c:'Carga moderada, cerca del 80% de lo que usas el día A. Hoy es volumen, no récord.'},
  {n:'Remo con barra',s:3,r:'10-12',rir:2,rest:'90 s',d:'remoBarra',
   c:'Mismo criterio: moderado y limpio. Prioriza que la espalda no se redondee.'},
+ {n:'Dominada en la barra',s:3,r:'6-8',rir:2,rest:'2 min',d:'dominada',
+  c:'La segunda vez en la semana, y esa es toda la gracia: la dominada mejora con FRECUENCIA más que con machaque, y dos sesiones separadas rinden más que una sola larga. Acá va con RIR 2, o sea te guardas dos repeticiones: si el día B las hiciste al límite, hoy no vengas a buscar un récord — esto es volumen limpio, igual que el resto del día D. Misma técnica del día B: hombros activos antes de tirar, codos hacia las costillas, barbilla sobre la barra y bajada de 2-3 segundos hasta estirar del todo. Si el día B te dejó los dorsales molidos y hoy no te salen ni 6 con esa calidad, haz 3 series de las que sí te salgan bien y anótalas tal cual: el registro sirve para ver el progreso, no para quedar bien.'},
  {n:'Sentadilla goblet con mancuerna',s:3,r:'15',rir:1,rest:'75 s',d:'goblet',
   c:'Mancuerna sostenida al pecho. Profundidad completa: el contrapeso adelante te ayuda a mantener el torso vertical.'},
  {n:'Press militar con mancuernas',s:3,r:'12-15',rir:1,rest:'75 s',d:'militarDB',
@@ -872,22 +883,50 @@ D:[
  {n:'CARDIO — a tu elección',cardio:1,s:1,r:'30 min',sug:'Trotadora',rest:'—',
   c:'La sesión larga de la semana, y la que más pesa: ritmo sostenible, deberías poder hablar en frases cortas. Elige lo que puedas sostener media hora sin sufrir — si te aburre siempre lo mismo, cámbialo, que el mejor cardio es el que haces.'}
 ],
+/* ---- Día E: core con kettlebell + barra ----
+   FUSIÓN del 14-sep-2026. El E era "cardio + core" con core isométrico y sin
+   carga; el F era el día de kettlebell, suelto y fuera de la rueda. Se juntan
+   en este, que SÍ está en la rueda: el F se dejó fuera por ser un día EXTRA, y
+   al reemplazar a uno que ya estaba, deja de serlo.
+   Criterio de la fusión: donde dos ejercicios ocupaban la misma casilla del
+   core se queda el que tiene CARGA y con qué subirla, porque el isométrico no
+   tiene escalón. Por eso el halo reemplaza al hollow (anti-extensión), la
+   marcha cargada a la plancha lateral (anti-inclinación) y el crunch con
+   kettlebell al crunch bicicleta (flexión). El puente de glúteo se queda: es
+   lo único de cadena posterior y no se pisa con nada.
+   La elevación de piernas sube de escalón y pasa a colgada de la barra. */
 E:[
- {n:'CARDIO — a tu elección',cardio:1,s:1,r:'30 min',sug:'Cuerda',rest:'—',
-  c:'Continuo y tranquilo, o en bloques de 90 segundos fuertes con 60 de pausa. Los bloques de 3 minutos suenan bien en el papel, pero casi nadie los sostiene sin trabarse.'},
- {n:'Plancha lateral',s:3,r:'30 s x lado',rest:'30 s',d:'planchaLat',
-  c:'Codo bajo el hombro, cadera alta, cuerpo en línea. Trabaja los oblicuos, esa franja de los costados.'},
- {n:'Hollow hold',s:3,r:'30 s',rest:'30 s',d:'hollow',
-  c:'Lumbar pegada al suelo, brazos y piernas extendidos. Si tiembla, está funcionando. Si la espalda se despega, sube las piernas.'},
- {n:'Crunch bicicleta',s:3,r:'20 total',rest:'30 s',d:'bicicleta',
-  c:'Codo hacia la rodilla contraria, lento. No tires del cuello con las manos.'},
+ {n:'Halo de rodillas con kettlebell',s:4,r:'10',rest:'60 s',d:'halo',sinDibujo:1,
+  busca:'kneeling halo kettlebell exercise',
+  c:'De rodillas, las dos apoyadas y el cuerpo recto desde la rodilla hasta la cabeza — nada de sentarse sobre los talones. La kettlebell agarrada por los cuernos y boca abajo, a la altura del pecho. Das una vuelta completa alrededor de la cabeza, pegada al cráneo, y vuelves por el otro lado; 10 son 5 para cada sentido. Lo que entrena no es el hombro, es lo que NO se mueve: cuando la pesa pasa por detrás de la cabeza te tira hacia atrás, y el abdomen y el glúteo tienen que apretar para que la lumbar no se arquee. Si te vas de espaldas o se te sale la costilla, bajaste la guardia y ahí se acabó la serie. Estar de rodillas es a propósito: te saca las piernas de la ecuación y el trabajo no se puede escapar a otro lado. Con la de 10 sobra — acá no se busca peso, se busca que nada se mueva. Ocupa el lugar que tenía el hollow hold: los dos aguantan que la espalda no se arquee, pero este lo hace con peso en las manos y el hollow no tenía cómo ponerse más difícil.'},
+ {n:'Iron trident con kettlebell',s:4,r:'10',rest:'60 s',d:'trident',sinDibujo:1,
+  busca:'iron trident kettlebell core exercise',
+  c:'Es el del reel que me mandaste, de Iestyn Williams. Sentado en el suelo, piernas estiradas y abiertas en V, pecho arriba y espalda recta — no echado hacia atrás. La kettlebell tomada por el asa. Una repetición son TRES toques: la apoyas en el suelo al costado de la cadera derecha, la levantas, la pasas entre las piernas y la apoyas ahí con una pausa, y la llevas al costado de la cadera izquierda. Y de vuelta. Va LENTO y apoyándola de verdad cada vez: si se convierte en un giro rápido de lado a lado dejaste de entrenar el core y empezaste a usar el impulso. Lo que trabaja es AGUANTAR la rotación, no hacerla. Empieza con la de 10, porque lo que se te va a cansar primero es la espalda baja sosteniendo el torso y la tuya es lo más flojo que tienes; cuando aguantes las 4 series con el pecho arriba de principio a fin, pasa a la de 20.'},
+ {n:'Crunch con kettlebell en el pecho',s:4,r:'10-12',rir:1,rest:'60 s',d:'crunchKB',
+  c:'Tu único abdominal con CARGA y con manera de subirla, que es justo lo que no tenías. Acostado, rodillas dobladas, la kettlebell abrazada contra el pecho. Sube enrollando la columna de a poco —primero la cabeza, después los hombros, después la espalda alta— hasta despegar los omóplatos, y baja en 3 segundos sin soltarte de golpe. No es un sit-up: la espalda baja no se despega del suelo en ningún momento. Parte con la de 10; cuando saques 12 limpias con RIR 1, pasa a la de 20. Y cuando la de 20 también te quede corta, no busques otra pesa — súbela por detrás de la cabeza con los brazos estirados: la palanca se alarga y pesa mucho más sin cambiar de kettlebell. Ocupa el lugar del crunch bicicleta, que hacía lo mismo sin peso y sin escalón.'},
+ {n:'Elevación de piernas colgado',s:3,r:'10-15',rest:'60 s',d:'piernasColgado',
+  c:'Este es el que destraba tu barra nueva. Colgado es bastante más duro que en el suelo, porque abajo la colchoneta te aguantaba media espalda y acá no te aguanta nada. Cuélgate con agarre prono y los hombros ACTIVOS —hundidos, alejando las orejas de las manos—: colgando flojo, el trabajo se te va a los hombros y a la espalda baja. Sube las piernas hasta que la cadera se enrolle un poco hacia arriba; el truco es justo ese, si solo levantas las piernas hasta la horizontal estás usando el flexor de la cadera y casi nada de abdomen, y lo que hace trabajar al abdomen de abajo es el último tramo, cuando la pelvis se mete hacia dentro. Baja en 3 segundos, controlado, hasta quedar estirado del todo. Lo que arruina el ejercicio es el balanceo: si vuelves columpiándote, el rebote hace el trabajo. Si te pasa, para, espera a quedarte quieto y arranca de nuevo. PARTE CON LAS RODILLAS DOBLADAS hacia el pecho; cuando saques 15 así en las tres series, estira las piernas y vuelves a empezar con menos repeticiones. A 90 kg el agarre te va a fallar antes que el abdomen las primeras semanas — no es que lo estés haciendo mal, es que colgarse entero es agarre, y eso también se entrena. Ojo con el dibujo: el cuadro del medio es la versión con las piernas estiradas, que es a donde vas; tú empiezas como el primero, con las rodillas dobladas.'},
+ {n:'Marcha cargada a una mano',s:4,r:'12',rest:'45 s',d:'marchaCargada',sinDibujo:1,
+  busca:'farmer carry march single arm kettlebell',
+  c:'La kettlebell en UNA mano, colgando al costado como una maleta, y marchas en el sitio subiendo la rodilla hasta la altura de la cadera; 12 son 6 por pierna. Terminas, cambias de mano y repites — esa es una serie. Es el paseo del maletero con una vuelta de tuerca: al levantar una pierna te quedas en apoyo simple, y el costado tiene que trabajar mucho más para que la cadera no se te caiga hacia el lado libre. Hombros parejos y atrás, mirada al frente, y la rodilla sube LENTO: no es trotar en el sitio. Si te inclinas hacia el lado del peso, la pesa es mucho. Carga oblicuos, el glúteo de la pierna que apoya, antebrazo y agarre. Ocupa el lugar de la plancha lateral: las dos impiden que la cadera se caiga de lado, pero esta lo hace con peso, de pie y en movimiento. Un aviso de orden: viene justo después de colgarte, así que el agarre llega cansado — si se te escapa la pesa antes de las 12, baja a la de 10 en vez de acortar la serie.'},
  {n:'Puente de glúteo',s:3,r:'15',rest:'30 s',d:'puente',
-  c:'Empuja con los talones, aprieta el glúteo arriba un segundo. Cierra el circuito con esto.'}
+  c:'El único superviviente del día E viejo, y se queda porque no se pisa con nada de lo de arriba: todo lo demás del día te dobla o te aguanta el tronco por delante y por los lados, y esto es lo único que empuja la cadera por detrás. Acostado, rodillas dobladas y pies plantados cerca del glúteo. Empuja con los TALONES, no con la punta, y sube hasta que el cuerpo quede recto del hombro a la rodilla; aprieta el glúteo un segundo arriba y baja controlado. Si lo sientes en la espalda baja en vez del glúteo, estás subiendo de más: arquear la lumbar no es más rango, es otro ejercicio. Mete un poco el ombligo antes de empujar y se acomoda solo.'},
+ {n:'Press de tríceps sobre la cabeza con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'tricepsCabeza',
+  c:'De pie o sentado en la banca, la kettlebell agarrada por los cuernos —los dos lados del asa— con las dos manos y subida sobre la cabeza. Codos apuntando al techo y pegados a las orejas: solo se mueve el antebrazo. Baja la pesa por detrás de la nuca todo lo que puedas y sube estirando el codo. Es distinto del press francés del día A: acá el brazo está vertical, así que el tríceps se estira entero, y esa posición estirada bajo carga es la que deja agujetas. Aprieta glúteo y abdomen para que la lumbar no se arquee con el peso arriba. Parte con la de 10. Ojo con el dibujo: ahí la pesa es una mancuerna tomada por la punta; tú agarras la kettlebell por los cuernos, pero la postura y el recorrido son exactamente esos.'},
+ {n:'Curl a dos manos con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'curlKB',
+  c:'Los 20 kg de la kettlebell son más carga de la que puedes ponerle a un curl: tus mancuernas topan en 15. Agárrala por el asa con las dos manos, codos pegados al costado y quietos, y sube sin balancear el tronco. La campana cuelga por debajo de las manos, así que te tira hacia adelante más que una mancuerna y te obliga a fijar el codo de verdad. Baja en 2 segundos. Ojo con el dibujo: ahí van dos mancuernas, una en cada mano y alternando; tú llevas UNA kettlebell con las dos manos juntas y subes las dos a la vez.'},
+ {n:'CARDIO — a tu elección',cardio:1,s:1,r:'20 min',sug:'Bicicleta estática',rest:'—',
+  c:'Veinte minutos, que es el punto medio entre los 30 que tenía el día E y los 10 que tenía el de kettlebell: el día ya trae ocho bloques cargados y con 30 terminabas saltándotelo, pero bajar a 10 te costaba veinte minutos de cardio a la semana justo en lo que más te importa. Continuo y tranquilo, o en bloques de 90 segundos fuertes con 60 de pausa. Una advertencia de orden: hoy NO elijas cuerda ni remo. Te acabas de colgar de la barra y de marchar con la pesa en la mano, así que tienes el antebrazo y el agarre cocidos, y los dos dependen justo de eso — te va a fallar la mano antes que las piernas y vas a cortar el cardio por el motivo equivocado. Bicicleta, trotadora o caminata: piernas, que están frescas.'}
 ],
 
-/* ---- Día F: core con kettlebell ----
-   Fuera de la rotación: lo haces el día que quieras y hacerlo no mueve la
-   rueda A-E.
+/* ---- Día F: RETIRADO el 14-sep-2026 ----
+   🔴NO BORRAR y no editarlo: dejó de poder elegirse (retirado en DAYS) porque
+   se fusionó con el día E, pero su PLAN sigue acá para que las sesiones que ya
+   estén anotadas con día F se abran y conserven su historial. Quien lo borre
+   deja esos registros apuntando a un día que no existe, y si alguno es de HOY,
+   diaSugerido() lo devuelve y vHoy() se cae con PLAN['F'] undefined.
+   Lo de aquí abajo es historia de cómo se construyó, no el plan vigente: el
+   plan vigente de estos ejercicios es el día E.
    ⚠SEGUNDA VERSIÓN (31-ago). La primera la rechazó: "siento que es full body
    y no está centrada en core o abdominal como te había pedido", y tenía razón
    en el conteo — de 9 bloques solo 4 eran de abdomen. Salieron el swing, el
@@ -1481,7 +1520,7 @@ function filaCardio(){
       || S.cardio.find(x=>x.f===hoy() && x.dia===undefined && /^CARDIO/.test(String(x.tipo||'')))
       || {};
 }
-const cardioSugerido = d => (PLAN[d].find(e=>e.cardio)||{}).sug || '';
+const cardioSugerido = d => ((PLAN[d]||[]).find(e=>e.cardio)||{}).sug || '';
 /* Los registros viejos guardaron el nombre PRESCRITO ('CARDIO — remo suave'),
    que no está en la lista de modalidades. Si se lo pasamos tal cual al
    desplegable, el navegador no encuentra esa opción y muestra la PRIMERA: la
@@ -1493,13 +1532,22 @@ function modalidadCardio(tipo, sug){
   return CARDIOS.find(m=>t.includes(m.toLowerCase())) || sug;
 }
 function vHoy(){
+  /* Red de seguridad: si el día guardado ya no existe en el PLAN, se cae al A
+     CORRIGIENDO la variable, no solo la lista — dejar dia con un valor muerto
+     haría que los botones, el mapa muscular y el guardado siguieran hablando
+     de un día que no está. Hoy no debería dispararse (el F retirado conserva
+     su PLAN), y está para el día que se retire otro. */
+  if(!PLAN[dia]) dia = 'A';
   const list = PLAN[dia];
   let h = `<h2>Sesión de hoy</h2>
   <p class="lede">Elige el día, abre cada ejercicio para ver la técnica y anota tus series. Se va guardando solo mientras escribes; al terminar, aprieta <b>Guardar sesión</b> abajo y ahí ves qué quedó registrado.</p>
   <div class="aviso-dia">${avisoDelDia()}</div>
   <div class="days">`;
   const hechos = diasHechosSemana();
-  DAYS.forEach(d=>{
+  /* Los días retirados no se ofrecen, PERO sí se pintan si es el día en el que
+     estás parado: si entrenaste el F antes de actualizar, tienes que poder
+     terminarlo y ver dónde estás, no quedarte sin ningún botón marcado. */
+  DAYS.filter(d=>!d.retirado || d.id===dia).forEach(d=>{
     const ok = hechos.has(d.id);
     h+=`<button class="day${ok?' hecho':''}" data-day="${d.id}" aria-pressed="${dia===d.id}">
       <b>Día ${d.id} · ${d.name}${ok?' ✓':''}</b><small>${d.sub}</small></button>`;
