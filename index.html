@@ -151,6 +151,21 @@
   .ex[data-open="1"] .chev{transform:rotate(90deg)}
   .ex-body{display:none;padding:0 14px 14px;border-top:1px solid var(--line)}
   .ex[data-open="1"] .ex-body{display:block}
+  /* Casa / Gym */
+  .lugar{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--r);padding:3px;margin:0 0 10px}
+  .lug{border:0;background:none;border-radius:7px;padding:9px 0;font:600 15px 'Inter',system-ui,sans-serif;
+    color:var(--ink-2);cursor:pointer}
+  .lug[aria-pressed="true"]{background:var(--pine);color:#fff}
+  /* opciones de la casilla */
+  .opcs{display:flex;flex-direction:column;gap:6px;margin:12px 0 4px}
+  .opc{display:flex;justify-content:space-between;align-items:baseline;gap:10px;text-align:left;cursor:pointer;
+    background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+    font:400 14px 'Inter',system-ui,sans-serif;color:var(--ink)}
+  .opc span{min-width:0}
+  .opc small{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-2);white-space:nowrap}
+  .opc[aria-pressed="true"]{border-color:var(--pine);background:var(--pine-lt);font-weight:600;box-shadow:inset 0 0 0 1px var(--pine)}
+  .toca{font-size:12.5px;color:var(--pine);margin:2px 0 6px}
   .ex.done .ex-idx{background:var(--pine);color:#fff;border-color:var(--pine)}
 
   .frames{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 6px}
@@ -736,7 +751,9 @@ function mapaMus(k){
    EJ_MUS, así que se quedan fuera solos. */
 function mapaMusDia(id){
   const p = new Set(), s = new Set();
-  (PLAN[id]||[]).forEach(e=>{
+  /* con la opción que toca hoy, no con la del PLAN: en el gym el día puede
+     trabajar otra cosa que en la casa */
+  planHoy(id).map(x=>x.e).forEach(e=>{
     const m = (typeof EJ_MUS!=='undefined' && EJ_MUS[e.d]) || null;
     if(!m) return;
     (m.p||[]).forEach(x=>p.add(x));
@@ -852,16 +869,26 @@ C:[
   c:'El más exigente de la semana. Barra pegada a la tibia, pecho arriba, empuja el suelo. Técnica antes que peso, siempre.'},
  {n:'Sentadilla goblet con mancuerna',s:3,r:'15-20',rir:1,rest:'90 s',d:'goblet',
   c:'Va en lugar de las zancadas: la búlgara ya hace el trabajo a una pierna y hacer los dos seguidos era repetir el mismo patrón con el doble de fatiga. Mancuerna al pecho, profundidad completa, torso vertical. Con 15 kg de tope acá no vas a cargar mucho, y no importa: la carga la pone la búlgara. Lo que buscas es recorrido completo y control — baja en 3 segundos y haz 1 de pausa abajo. Cuando 20 repeticiones te salgan fáciles, sube la pausa a 3 segundos antes de pensar en más peso.'},
- {n:'Hip thrust con barra',s:3,r:'12-15',rir:1,rest:'90 s',d:'hipthrust',
-  c:'Espalda alta apoyada en la banca, barra sobre la cadera (usa una toalla). Aprieta el glúteo un segundo arriba, mentón hacia el pecho. Es donde antes vas a topar los 90 kg: cuando saques las 15 repeticiones con RIR 1, no busques más peso — pásalo a una pierna.'},
+ /* ⚠25-oct-2026: el hip thrust con barra sale de la casa porque la banca se
+    está rompiendo y es el ejercicio que más la fuerza de lado. Entra el puente
+    con barra, con la espalda en el suelo. El hip thrust NO se borra: vive como
+    opción del gym con el MISMO nombre, para que su historial siga abriéndose. */
+ {n:'Puente de glúteo con barra',s:3,r:'12-15',rir:1,rest:'90 s',d:'puente',
+  c:'Va en lugar del hip thrust, que en la casa ya no se puede: la banca se está rompiendo y el hip thrust es lo que más la carga de lado. Es el mismo ejercicio con la espalda en el suelo en vez de en la banca. Siéntate con las piernas estiradas, rueda la barra por los muslos hasta la cadera (con una toalla doblada debajo) y recién ahí acuéstate y planta los pies cerca del glúteo. Empuja con los TALONES hasta que el cuerpo quede recto del hombro a la rodilla, aprieta el glúteo un segundo arriba y baja controlado hasta rozar el suelo con el glúteo. El recorrido es más corto que en el hip thrust, así que vas a mover más peso: si no te cuesta, pon más. Cuando topes los 90 kg con las 15 repeticiones, pausa de 3 segundos arriba antes de pasarlo a una pierna. Ojo con el dibujo: es el puente sin peso; tú llevas la barra sobre la cadera.'},
  {n:'Elevación de talones con mancuernas',s:3,r:'20',rir:1,rest:'45 s',d:'gemelos',
   c:'Rango completo: baja el talón todo lo que puedas y sube hasta la punta. Pausa arriba.'},
- {n:'Plancha frontal',s:3,r:'45-60 s',rest:'45 s',d:'plancha',
-  c:'Glúteo apretado, cadera neutra, cuerpo en línea recta. Si la lumbar se arquea, se acabó la serie: no hay premio por aguantar mal. Aprieta «Aguante» y suéltala cuando suene.'},
+ /* ⚠25-oct-2026: pidió más abdomen CON CARGA sin alargar las rutinas. De los
+    tres de core sin peso que tenía este día, dos se cambian: la plancha
+    frontal por el crunch con disco (abdomen alto) y el dead bug por el crunch
+    inverso con mancuerna (abdomen bajo). La lateral se queda: es lo único del
+    día que trabaja el costado. Los dos que salen conservan su entrada en
+    EJ_IMG/EJ_MUS: los registros se guardan por nombre. */
+ {n:'Crunch con disco',s:3,r:'12-15',rir:1,rest:'45 s',d:'crunchKB',
+  c:'Va en lugar de la plancha frontal: la plancha no tenía cómo ponerse más difícil y esto se sube de a 2,5 kg. Acostado, rodillas dobladas y pies en el suelo, el disco abrazado contra el pecho. Sube enrollando la columna —cabeza, hombros, espalda alta— hasta despegar los omóplatos, aprieta un segundo arriba y baja en 3 segundos. La espalda baja no se despega del suelo: no es un sit-up. Trabaja el abdomen de arriba del ombligo. Parte con 5 kg; cuando saques 15 limpias con RIR 1, pasa al disco siguiente. Más adelante, con el disco por detrás de la cabeza y los brazos estirados pesa mucho más sin cambiar de disco. Ojo con el dibujo: ahí es con una kettlebell; tú abrazas un disco, y el recorrido es el mismo.'},
  {n:'Plancha lateral',s:3,r:'30 s x lado',rest:'30 s',d:'planchaLat',
   c:'Va inmediatamente después de la frontal, sin descanso entremedio: la frontal aguanta la cadera por delante y esta la aguanta de lado, y juntas cubren el cinturón entero. Codo bajo el hombro, cadera alta, cuerpo en línea vista desde arriba. Los 30 segundos son POR LADO: aguantas un lado, giras y aguantas el otro, y recién ahí descansas. Si la cadera se te cae, se acabó la serie.'},
- {n:'Dead bug',s:3,r:'12 x lado',rest:'45 s',d:'deadbug',
-  c:'Lumbar pegada a la colchoneta durante todo el movimiento. Lento y con control. Si la espalda se despega, acorta el rango.'},
+ {n:'Crunch inverso con mancuerna',s:3,r:'12-15',rir:1,rest:'45 s',d:'crunchInv',
+  c:'Va en lugar del dead bug, y es el que apunta al abdomen de ABAJO del ombligo. Acostado, manos a los costados con las palmas en el suelo, una mancuerna apretada entre los pies y las rodillas dobladas en 90°. Lleva las rodillas hacia el pecho hasta que la cadera se despegue del suelo y se enrolle hacia arriba: ese último tramo, cuando la pelvis se mete, es el que trabaja el abdomen bajo; solo subir las piernas es flexor de cadera. Baja en 3 segundos hasta que los pies casi toquen el suelo, sin arquear la lumbar. No va colgado de la barra porque viene después del peso muerto y el agarre ya llega gastado. Parte con 5 kg; cuando saques 15 limpias, sube la mancuerna. Si se te resbala, cruza los tobillos alrededor del mango.'},
  {n:'CARDIO — a tu elección',cardio:1,s:1,r:'12 min',sug:'Trotadora',rest:'—',
   c:'Ritmo moderado y amable con la rodilla, que vienes de piernas. Sube la dificultad sin subir el impacto: en trotadora, más pendiente en vez de más velocidad; en bici o elíptica, más resistencia en vez de más revoluciones.'}
 ],
@@ -908,12 +935,12 @@ D:[
 E:[
  {n:'Halo de rodillas con kettlebell',s:4,r:'10',rest:'60 s',d:'halo',sinDibujo:1,
   busca:'kneeling halo kettlebell exercise',
-  c:'De rodillas, las dos apoyadas y el cuerpo recto desde la rodilla hasta la cabeza — nada de sentarse sobre los talones. La kettlebell agarrada por los cuernos y boca abajo, a la altura del pecho. Das una vuelta completa alrededor de la cabeza, pegada al cráneo, y vuelves por el otro lado; 10 son 5 para cada sentido. Lo que entrena no es el hombro, es lo que NO se mueve: cuando la pesa pasa por detrás de la cabeza te tira hacia atrás, y el abdomen y el glúteo tienen que apretar para que la lumbar no se arquee. Si te vas de espaldas o se te sale la costilla, bajaste la guardia y ahí se acabó la serie. Estar de rodillas es a propósito: te saca las piernas de la ecuación y el trabajo no se puede escapar a otro lado. Con la de 10 sobra — acá no se busca peso, se busca que nada se mueva. Ocupa el lugar que tenía el hollow hold: los dos aguantan que la espalda no se arquee, pero este lo hace con peso en las manos y el hollow no tenía cómo ponerse más difícil.'},
+  c:'De rodillas, las dos apoyadas y el cuerpo recto desde la rodilla hasta la cabeza — nada de sentarse sobre los talones. La kettlebell agarrada por los cuernos y boca abajo, a la altura del pecho. Das una vuelta completa alrededor de la cabeza, pegada al cráneo, y vuelves por el otro lado; 10 son 5 para cada sentido. Lo que entrena no es el hombro, es lo que NO se mueve: cuando la pesa pasa por detrás de la cabeza te tira hacia atrás, y el abdomen y el glúteo tienen que apretar para que la lumbar no se arquee. Si te vas de espaldas o se te sale la costilla, bajaste la guardia y ahí se acabó la serie. Estar de rodillas es a propósito: te saca las piernas de la ecuación y el trabajo no se puede escapar a otro lado. Con la de 8 sobra — acá no se busca peso, se busca que nada se mueva. La de 20 es demasiado para esto: el salto entre tus dos kettlebells es de 12 kg, y cuando la de 8 te quede corta el paso intermedio es un disco de 10 kg tomado con las dos manos. Ocupa el lugar que tenía el hollow hold: los dos aguantan que la espalda no se arquee, pero este lo hace con peso en las manos y el hollow no tenía cómo ponerse más difícil.'},
  {n:'Iron trident con kettlebell',s:4,r:'10',rest:'60 s',d:'trident',sinDibujo:1,
   busca:'iron trident kettlebell core exercise',
-  c:'Es el del reel que me mandaste, de Iestyn Williams. Sentado en el suelo, piernas estiradas y abiertas en V, pecho arriba y espalda recta — no echado hacia atrás. La kettlebell tomada por el asa. Una repetición son TRES toques: la apoyas en el suelo al costado de la cadera derecha, la levantas, la pasas entre las piernas y la apoyas ahí con una pausa, y la llevas al costado de la cadera izquierda. Y de vuelta. Va LENTO y apoyándola de verdad cada vez: si se convierte en un giro rápido de lado a lado dejaste de entrenar el core y empezaste a usar el impulso. Lo que trabaja es AGUANTAR la rotación, no hacerla. Empieza con la de 10, porque lo que se te va a cansar primero es la espalda baja sosteniendo el torso y la tuya es lo más flojo que tienes; cuando aguantes las 4 series con el pecho arriba de principio a fin, pasa a la de 20.'},
+  c:'Es el del reel que me mandaste, de Iestyn Williams. Sentado en el suelo, piernas estiradas y abiertas en V, pecho arriba y espalda recta — no echado hacia atrás. La kettlebell tomada por el asa. Una repetición son TRES toques: la apoyas en el suelo al costado de la cadera derecha, la levantas, la pasas entre las piernas y la apoyas ahí con una pausa, y la llevas al costado de la cadera izquierda. Y de vuelta. Va LENTO y apoyándola de verdad cada vez: si se convierte en un giro rápido de lado a lado dejaste de entrenar el core y empezaste a usar el impulso. Lo que trabaja es AGUANTAR la rotación, no hacerla. Empieza con la de 8, porque lo que se te va a cansar primero es la espalda baja sosteniendo el torso y la tuya es lo más flojo que tienes; cuando aguantes las 4 series con el pecho arriba de principio a fin, no saltes directo a la de 20, que son 12 kg más: el paso del medio es una mancuerna de 12,5 o 15 kg tomada por un extremo.'},
  {n:'Crunch con kettlebell en el pecho',s:4,r:'10-12',rir:1,rest:'60 s',d:'crunchKB',
-  c:'Tu único abdominal con CARGA y con manera de subirla, que es justo lo que no tenías. Acostado, rodillas dobladas, la kettlebell abrazada contra el pecho. Sube enrollando la columna de a poco —primero la cabeza, después los hombros, después la espalda alta— hasta despegar los omóplatos, y baja en 3 segundos sin soltarte de golpe. No es un sit-up: la espalda baja no se despega del suelo en ningún momento. Parte con la de 10; cuando saques 12 limpias con RIR 1, pasa a la de 20. Y cuando la de 20 también te quede corta, no busques otra pesa — súbela por detrás de la cabeza con los brazos estirados: la palanca se alarga y pesa mucho más sin cambiar de kettlebell. Ocupa el lugar del crunch bicicleta, que hacía lo mismo sin peso y sin escalón.'},
+  c:'Tu único abdominal con CARGA y con manera de subirla, que es justo lo que no tenías. Acostado, rodillas dobladas, la kettlebell abrazada contra el pecho. Sube enrollando la columna de a poco —primero la cabeza, después los hombros, después la espalda alta— hasta despegar los omóplatos, y baja en 3 segundos sin soltarte de golpe. No es un sit-up: la espalda baja no se despega del suelo en ningún momento. Parte con la de 8; cuando saques 12 limpias con RIR 1, pasa a una mancuerna de 12,5 o 15 kg abrazada igual, y recién después a la de 20. Y cuando la de 20 también te quede corta, no busques otra pesa — súbela por detrás de la cabeza con los brazos estirados: la palanca se alarga y pesa mucho más sin cambiar de kettlebell. Ocupa el lugar del crunch bicicleta, que hacía lo mismo sin peso y sin escalón.'},
  {n:'Elevación de piernas colgado',s:3,r:'10-15',rest:'60 s',d:'piernasColgado',
   c:'Este es el que destraba tu barra nueva. Colgado es bastante más duro que en el suelo, porque abajo la colchoneta te aguantaba media espalda y acá no te aguanta nada. Cuélgate con agarre prono y los hombros ACTIVOS —hundidos, alejando las orejas de las manos—: colgando flojo, el trabajo se te va a los hombros y a la espalda baja. Sube las piernas hasta que la cadera se enrolle un poco hacia arriba; el truco es justo ese, si solo levantas las piernas hasta la horizontal estás usando el flexor de la cadera y casi nada de abdomen, y lo que hace trabajar al abdomen de abajo es el último tramo, cuando la pelvis se mete hacia dentro. Baja en 3 segundos, controlado, hasta quedar estirado del todo. Lo que arruina el ejercicio es el balanceo: si vuelves columpiándote, el rebote hace el trabajo. Si te pasa, para, espera a quedarte quieto y arranca de nuevo. PARTE CON LAS RODILLAS DOBLADAS hacia el pecho; cuando saques 15 así en las tres series, estira las piernas y vuelves a empezar con menos repeticiones. A 90 kg el agarre te va a fallar antes que el abdomen las primeras semanas — no es que lo estés haciendo mal, es que colgarse entero es agarre, y eso también se entrena. Ojo con el dibujo: el cuadro del medio es la versión con las piernas estiradas, que es a donde vas; tú empiezas como el primero, con las rodillas dobladas.'},
  {n:'Elevación de rodillas oblicua colgado',s:3,r:'10-12 total',rest:'45 s',d:'oblicuoColgado',sinDibujo:1,
@@ -921,11 +948,11 @@ E:[
   c:'El segundo de la barra, y va pegado al anterior a propósito: los dos colgados juntos, para no repartir el agarre por todo el día. Cuelga igual que en el de arriba —agarre prono, hombros hundidos y activos— pero ahora, en vez de subir las rodillas al frente, las subes hacia un COSTADO, apuntando el par de rodillas juntas hacia la axila del mismo lado; bajas controlado y repites hacia el otro. Alternas, y 10-12 son el total contando los dos lados. Lo que entrena es lo único que al día le faltaba: los oblicuos ACORTÁNDOSE bajo carga. Ojo con la diferencia, porque es toda la gracia de tenerlo junto al iron trident: en el trident aguantas para que el tronco NO gire, y acá giras a propósito y controlas la vuelta. Son las dos caras de la misma moneda y por eso no se pisan. Tres avisos. Uno: sube las rodillas, no te descuelgues de lado — si el torso se va para el lado contrario haciendo contrapeso, dejaste de usar el oblicuo y te estás columpiando. Dos: LENTO, sobre todo la bajada; si vuelves de golpe el rebote hace el trabajo y además te sacude la espalda baja. Tres: si empiezas a girar con el cuerpo entero en vez de con la cintura, se acabó la serie. Empieza con las rodillas dobladas, igual que el anterior. El escalón, para dentro de varios meses, es el limpiaparabrisas: piernas estiradas arriba y bajarlas de lado a lado — no lo intentes hasta que sostengas las piernas estiradas arriba sin que se te caigan, porque antes de eso no es una progresión, es una forma de hacerte daño en la lumbar.'},
  {n:'Marcha cargada a una mano',s:4,r:'12',rest:'45 s',d:'marchaCargada',sinDibujo:1,
   busca:'farmer carry march single arm kettlebell',
-  c:'La kettlebell en UNA mano, colgando al costado como una maleta, y marchas en el sitio subiendo la rodilla hasta la altura de la cadera; 12 son 6 por pierna. Terminas, cambias de mano y repites — esa es una serie. Es el paseo del maletero con una vuelta de tuerca: al levantar una pierna te quedas en apoyo simple, y el costado tiene que trabajar mucho más para que la cadera no se te caiga hacia el lado libre. Hombros parejos y atrás, mirada al frente, y la rodilla sube LENTO: no es trotar en el sitio. Si te inclinas hacia el lado del peso, la pesa es mucho. Carga oblicuos, el glúteo de la pierna que apoya, antebrazo y agarre. Ocupa el lugar de la plancha lateral: las dos impiden que la cadera se caiga de lado, pero esta lo hace con peso, de pie y en movimiento. Un aviso de orden: vienes de DOS ejercicios colgado, así que el agarre llega bastante cansado — si se te escapa la pesa antes de las 12, baja a la de 10 en vez de acortar la serie. Es la primera que va a notar el ejercicio nuevo.'},
+  c:'La kettlebell en UNA mano, colgando al costado como una maleta, y marchas en el sitio subiendo la rodilla hasta la altura de la cadera; 12 son 6 por pierna. Terminas, cambias de mano y repites — esa es una serie. Es el paseo del maletero con una vuelta de tuerca: al levantar una pierna te quedas en apoyo simple, y el costado tiene que trabajar mucho más para que la cadera no se te caiga hacia el lado libre. Hombros parejos y atrás, mirada al frente, y la rodilla sube LENTO: no es trotar en el sitio. Si te inclinas hacia el lado del peso, la pesa es mucho. Carga oblicuos, el glúteo de la pierna que apoya, antebrazo y agarre. Ocupa el lugar de la plancha lateral: las dos impiden que la cadera se caiga de lado, pero esta lo hace con peso, de pie y en movimiento. Un aviso de orden: vienes de DOS ejercicios colgado, así que el agarre llega bastante cansado — si se te escapa la pesa antes de las 12, termina la serie con la mancuerna de 15 en vez de acortarla. La de 8 es demasiado poco: no le pide nada al costado. Es la primera que va a notar el ejercicio nuevo.'},
  {n:'Puente de glúteo',s:3,r:'15',rest:'30 s',d:'puente',
   c:'El único superviviente del día E viejo, y se queda porque no se pisa con nada de lo de arriba: todo lo demás del día te dobla o te aguanta el tronco por delante y por los lados, y esto es lo único que empuja la cadera por detrás. Acostado, rodillas dobladas y pies plantados cerca del glúteo. Empuja con los TALONES, no con la punta, y sube hasta que el cuerpo quede recto del hombro a la rodilla; aprieta el glúteo un segundo arriba y baja controlado. Si lo sientes en la espalda baja en vez del glúteo, estás subiendo de más: arquear la lumbar no es más rango, es otro ejercicio. Mete un poco el ombligo antes de empujar y se acomoda solo.'},
  {n:'Press de tríceps sobre la cabeza con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'tricepsCabeza',
-  c:'De pie o sentado en la banca, la kettlebell agarrada por los cuernos —los dos lados del asa— con las dos manos y subida sobre la cabeza. Codos apuntando al techo y pegados a las orejas: solo se mueve el antebrazo. Baja la pesa por detrás de la nuca todo lo que puedas y sube estirando el codo. Es distinto del press francés del día A: acá el brazo está vertical, así que el tríceps se estira entero, y esa posición estirada bajo carga es la que deja agujetas. Aprieta glúteo y abdomen para que la lumbar no se arquee con el peso arriba. Parte con la de 10. Ojo con el dibujo: ahí la pesa es una mancuerna tomada por la punta; tú agarras la kettlebell por los cuernos, pero la postura y el recorrido son exactamente esos.'},
+  c:'De pie o sentado en la banca, la kettlebell agarrada por los cuernos —los dos lados del asa— con las dos manos y subida sobre la cabeza. Codos apuntando al techo y pegados a las orejas: solo se mueve el antebrazo. Baja la pesa por detrás de la nuca todo lo que puedas y sube estirando el codo. Es distinto del press francés del día A: acá el brazo está vertical, así que el tríceps se estira entero, y esa posición estirada bajo carga es la que deja agujetas. Aprieta glúteo y abdomen para que la lumbar no se arquee con el peso arriba. Parte con la de 8. Ojo con el dibujo: ahí la pesa es una mancuerna tomada por la punta; tú agarras la kettlebell por los cuernos, pero la postura y el recorrido son exactamente esos.'},
  {n:'Curl a dos manos con kettlebell',s:3,r:'10-12',rir:1,rest:'75 s',d:'curlKB',
   c:'Los 20 kg de la kettlebell son más carga de la que puedes ponerle a un curl: tus mancuernas topan en 15. Agárrala por el asa con las dos manos, codos pegados al costado y quietos, y sube sin balancear el tronco. La campana cuelga por debajo de las manos, así que te tira hacia adelante más que una mancuerna y te obliga a fijar el codo de verdad. Baja en 2 segundos. Ojo con el dibujo: ahí van dos mancuernas, una en cada mano y alternando; tú llevas UNA kettlebell con las dos manos juntas y subes las dos a la vez.'},
  {n:'CARDIO — a tu elección',cardio:1,s:1,r:'20 min',sug:'Bicicleta estática',rest:'—',
@@ -995,13 +1022,453 @@ const SUELO = {
 };
 Object.keys(PLAN).forEach(k=>PLAN[k].push({...SUELO}));
 
+/* ---- Casa / Gym y opciones para rotar (25-oct-2026) ----
+   Desde que entrena también en un gym con todo, cada casilla del plan puede
+   hacerse con varios ejercicios. La casilla es lo que manda: series,
+   repeticiones, RIR y descanso son de la CASILLA y no cambian con la opción;
+   cambia solo el ejercicio.
+   - `t` nombra la casilla por lo que hace («Pecho, empuje pesado»).
+   - `casa` son las alternativas EXTRA de la casa: la primera opción de la
+     casa es siempre el ejercicio del PLAN, que se agrega solo.
+   - `gym` es la lista completa del gym. `'='` quiere decir «el mismo
+     ejercicio del PLAN», con su texto.
+   🔑Las series se guardan con el NOMBRE de la opción hecha (x.ej), así que
+   cada una tiene su propio historial y su propio peso sugerido, y una máquina
+   no se mezcla con la barra. Por eso, donde la opción ES un ejercicio que ya
+   tenía registros, va con el mismo nombre exacto (el hip thrust, el crunch con
+   kettlebell…): con otro nombre su historial quedaría huérfano.
+   ⚠Dentro de un MISMO día no puede repetirse un nombre en dos casillas: las
+   series de hoy se buscan por fecha y nombre, y las dos casillas se pisarían.
+   Hay una comprobación que falla si pasa.
+   El cardio y el suelo pélvico no tienen opciones. */
+const OPC = {
+A:{
+ 'Press banca con barra':{t:'Pecho, empuje pesado',
+  gym:['=',
+   {n:'Press banca con mancuernas',d:'dbBench',
+    c:'Acostado en la banca plana, una mancuerna en cada mano a la altura del pecho, codos a unos 45° del cuerpo —no abiertos en cruz—. Empuja hacia arriba juntando un poco las mancuernas al final, sin chocarlas, y baja en 2 segundos hasta sentir el pecho estirado. Baja más que la barra, y ese recorrido extra es justo lo que aporta. Para subirlas: siéntate con ellas sobre los muslos y acuéstate llevándolas con las rodillas. Cada mano va sola, así que el lado débil no se puede esconder detrás del fuerte. Ojo con el dibujo: ahí la banca sale inclinada; tú la usas plana.'},
+   {n:'Press de pecho en máquina',d:'pechoMaq',
+    c:'Ajusta el asiento para que las manijas queden a la altura de la mitad del pecho, no de los hombros. Espalda pegada al respaldo y escápulas juntas atrás durante todo el recorrido. Empuja sin bloquear del todo los codos y vuelve lento hasta sentir el estiramiento. La máquina te sostiene el recorrido, así que acá puedes llegar más cerca del fallo que con la barra sin quedar atrapado: es la opción para los días en que entrenas solo y quieres apretar.'}]},
+ 'Press militar de pie con barra':{t:'Hombro, press vertical',
+  casa:[
+   {n:'Press de pie con mancuernas',d:'militarDBpie',
+    c:'De pie, mancuernas a la altura de los hombros con las palmas hacia adelante. Glúteo y abdomen apretados para que la lumbar no se arquee. Sube las dos a la vez hasta estirar los brazos sobre la cabeza y baja controlado hasta los hombros. Con tus mancuernas de 15 kg vas bien en este rango; cuando 10 te queden fáciles, haz la bajada en 3 segundos.'},
+   {n:'Press a una mano con kettlebell',d:'militarKB',sinDibujo:1,busca:'single arm kettlebell overhead press',
+    c:'La kettlebell de 20 en una mano, apoyada en el antebrazo a la altura del hombro (la campana descansa por fuera de la muñeca). Aprieta el puño, el glúteo y el abdomen, y empuja hacia arriba hasta estirar el brazo con el bíceps junto a la oreja. Baja controlado a la posición del hombro. Las repeticiones son POR BRAZO. Como el peso va de un solo lado, el tronco tiene que trabajar para no doblarse: si te inclinas hacia el lado contrario, el peso es mucho.'}],
+  gym:['=',
+   {n:'Press de hombro en máquina',d:'hombroMaq',
+    c:'Ajusta el asiento para que las manijas partan a la altura de los hombros. Espalda pegada al respaldo, sin despegar la lumbar. Empuja hacia arriba sin bloquear del todo los codos y baja lento hasta la altura de las orejas. La máquina te deja apretar cerca del fallo sin miedo a perder el equilibrio.'},
+   {n:'Press con mancuernas sentado',d:'militarSent',
+    c:'Sentado en un banco con el respaldo vertical, mancuernas a la altura de los hombros con las palmas hacia adelante. Empuja hacia arriba hasta casi juntar las mancuernas y baja controlado hasta que los codos queden un poco por debajo de los hombros. El respaldo te quita la trampa de la lumbar, así que todo el trabajo queda en el hombro.'}]},
+ 'Flexiones con los pies en la banca':{t:'Parte alta del pecho',
+  gym:[
+   {n:'Press inclinado con mancuernas',d:'inclDB',
+    c:'En el gym la banca sí se inclina, así que acá vuelve el press inclinado. Respaldo a unos 30°: más alto ya es hombro. Mancuernas a la altura de la parte alta del pecho, codos a 45° del cuerpo, empuja hacia arriba y baja en 2 segundos hasta sentir el estiramiento. Es el ejercicio que la banca plana de tu casa no te deja hacer y por eso esta casilla lo reemplaza con flexiones.'},
+   {n:'Press inclinado con barra',d:'inclBarra',
+    c:'Banca inclinada a unos 30°, en un rack con soportes —en el gym sí los hay—. Toma la barra un poco más abierta que los hombros, bájala a la parte alta del pecho, justo bajo la clavícula, y empuja hacia arriba. Escápulas juntas atrás todo el rato. Pon los seguros del rack a la altura del pecho: entrenas solo.'},
+   {n:'Aperturas en polea de abajo hacia arriba',d:'poleaInclFly',
+    c:'Las dos poleas abajo, una manija en cada mano, un paso adelante. Con los codos un poco doblados y fijos, sube las manos desde la cadera hasta juntarlas frente a la cara, como si abrazaras algo grande hacia arriba. Baja lento. Ese recorrido de abajo hacia arriba es el que carga la parte alta del pecho. La polea tira todo el recorrido, también arriba, donde la mancuerna ya no pesa nada.'}]},
+ 'Flexión Tyson (pies contra el muro)':{t:'Pecho y hombro, con tu peso',
+  gym:['=',
+   {n:'Press landmine a una mano',d:'landmine',
+    c:'La punta de una barra metida en el soporte de landmine (o en una esquina), la otra punta cargada. De pie o con una rodilla en el suelo, toma la punta con una mano a la altura del hombro y empuja hacia arriba y adelante hasta estirar el brazo. Baja controlado. El recorrido en diagonal carga pecho alto y hombro a la vez, que es lo mismo que la Tyson, y con peso que se puede subir. Las repeticiones son POR BRAZO.'},
+   {n:'Flexiones con disco en la espalda',sinDibujo:1,busca:'weighted push up plate on back',
+    c:'Flexión normal con un disco apoyado entre los omóplatos: pídele a alguien que te lo ponga, o súbelo tú desde la posición de rodillas. Cuerpo recto de talón a cabeza, baja el pecho hasta casi tocar el suelo y empuja. El disco tiene que quedarse quieto: si se desliza, estás hundiendo la cadera. Parte con 10 kg; es la forma de seguir cargando flexiones cuando ya te salen fáciles.'}]},
+ 'Aperturas con mancuernas':{t:'Pecho, aislado',
+  gym:[
+   {n:'Contractor de pecho (pec deck)',d:'pecDeck',
+    c:'Sentado con la espalda pegada al respaldo, el asiento a una altura en que las manijas queden a la altura del pecho. Codos un poco doblados y fijos; junta las manijas al frente apretando el pecho un segundo y abre lento hasta sentir el estiramiento, sin pasar la línea de los hombros. La máquina te fija el recorrido: acá puedes ir al fallo sin riesgo.'},
+   {n:'Aperturas en polea',d:'cableFly',
+    c:'Las dos poleas a la altura de los hombros, una manija en cada mano y un paso adelante, con un pie adelantado. Codos un poco doblados y fijos: junta las manos al frente a la altura del pecho y vuelve lento hasta sentir el estiramiento. A diferencia de la mancuerna, la polea sigue tirando cuando las manos se juntan, que es donde se aprieta el pecho.'},
+   '=']},
+ 'Elevaciones laterales':{t:'Hombro lateral',
+  gym:['=',
+   {n:'Laterales en polea a una mano',d:'latPolea',
+    c:'La polea abajo, de pie de costado a la máquina, la manija en la mano más lejana. Sube el brazo hacia el costado hasta la línea del hombro, con el codo un poco doblado, y baja lento. La polea carga desde abajo, donde la mancuerna no pesa nada. Las repeticiones son POR BRAZO. Afírmate de la máquina con la otra mano para no balancearte. Ojo con el dibujo: ahí va con las dos manos en dos poleas; tú lo haces a una mano.'},
+   {n:'Laterales en máquina',d:'latMaq',
+    c:'Sentado, el eje de la máquina alineado con el hombro y los cojines apoyados en el costado del brazo. Sube los codos hacia los lados hasta la línea del hombro y baja lento. Sin encoger los hombros: si el trapecio se sube a las orejas, el peso es mucho.'}]},
+ 'Press francés con barra de tríceps':{t:'Tríceps',
+  casa:[
+   {n:'Press francés con mancuernas',d:'francesDB',
+    c:'Acostado en la banca, una mancuerna en cada mano con las palmas enfrentadas y los brazos estirados sobre el pecho. Codos apuntando al techo y fijos: solo se mueve el antebrazo. Baja las mancuernas a los costados de la cabeza y sube estirando el codo. El agarre neutro cuida el codo y la muñeca más que la barra.'}],
+  gym:[
+   {n:'Extensión de tríceps en polea con cuerda',d:'triCuerda',
+    c:'La polea arriba con la cuerda. Codos pegados al costado y quietos durante todo el recorrido; empuja la cuerda hacia abajo hasta estirar los brazos y, al final, abre las puntas de la cuerda hacia afuera. Sube lento hasta que los antebrazos queden un poco por encima de la horizontal. Si los codos se te van adelante, estás usando el hombro: baja el peso.'},
+   '=',
+   {n:'Extensión de tríceps sobre la cabeza en polea',d:'triPoleaCabeza',
+    c:'Polea abajo con la cuerda, de espaldas a la máquina, la cuerda por detrás de la cabeza y un pie adelantado. Codos apuntando hacia adelante y arriba, fijos; estira los brazos sobre la cabeza y vuelve lento hasta sentir el tríceps estirado. Esa posición estirada es la que más hace crecer el tríceps.'}]},
+ 'Fondos entre banca y suelo':{t:'Tríceps al fallo',
+  gym:[
+   {n:'Fondos en paralelas',d:'fondosPar',
+    c:'Las paralelas que en tu casa no tienes. Brazos estirados arriba, hombros hundidos, lejos de las orejas. Baja inclinando un poco el torso adelante hasta que los codos queden en 90°, no más abajo, y empuja hasta estirar. Vas al fallo, como en la casa; cuando hagas más de 15, cuélgate un disco con un cinturón. Ojo con el dibujo: no se ven las paralelas; fíjate en el cuerpo, recto y con las rodillas dobladas.'},
+   {n:'Fondos asistidos en máquina',d:'fondosAsist',
+    c:'Rodillas o pies en la plataforma, que te empuja hacia arriba. Más peso en la pila es MÁS ayuda, al revés que en las otras máquinas. Baja hasta que los codos queden en 90° y sube. Sirve para llegar a las repeticiones con buena técnica cuando ya vienes cansado del resto del día. Ojo con el dibujo: es la máquina de fondos sentado; si la de tu gym tiene apoyo para las rodillas, el recorrido de los brazos es el mismo.'},
+   '=']}
+},
+B:{
+ 'Dominada en la barra':{t:'Espalda, tirón vertical',
+  casa:[
+   {n:'Dominada supina (palmas hacia ti)',d:'supina',
+    c:'Igual que la dominada, pero con las palmas mirándote y las manos al ancho de los hombros. Mete más bíceps, así que te van a salir una o dos más: anótalas tal cual, porque tiene su propio historial. Cuélgate con los hombros activos, sube hasta pasar la barbilla y baja en 2-3 segundos hasta estirar los brazos del todo.'}],
+  gym:['=',
+   {n:'Jalón al pecho abierto',d:'jalon',
+    c:'Ajusta el cojín para que los muslos queden trabados. Toma la barra más abierta que los hombros, con el torso apenas inclinado atrás. Antes de tirar, hunde los hombros; después lleva los codos hacia las costillas hasta que la barra toque la parte alta del pecho. Sube lento hasta estirar los brazos del todo. Si para bajarla tienes que echarte atrás, el peso es mucho. Tiene su propio historial: los kilos de la pila no se comparan con tu peso colgado.'},
+   {n:'Jalón con agarre cerrado',d:'jalonCerrado',
+    c:'Con la manija en V o cerrada, palmas enfrentadas. Mismo gesto que el jalón abierto: hombros hundidos primero, codos hacia las costillas y la manija al pecho, y subida lenta. El agarre cerrado deja bajar más los codos y carga más el dorsal bajo. Ojo con el dibujo: el agarre es en V, con las manos juntas y las palmas enfrentadas.'}]},
+ 'Peso muerto rumano con barra':{t:'Isquios y lumbar',
+  gym:['=',
+   {n:'Peso muerto rumano con mancuernas',d:'rdlDB',
+    c:'Una mancuerna en cada mano frente a los muslos. Rodillas casi fijas, cadera hacia atrás y espalda neutra, las mancuernas rozando las piernas, hasta sentir el isquiotibial estirado. En el gym hay mancuernas mucho más pesadas que las tuyas: úsalas. Sube apretando el glúteo.'},
+   {n:'Peso muerto rumano en máquina Smith',d:'rdlSmith',
+    c:'La barra guiada parte a la altura de la cadera, así que no hay que levantarla del suelo. Mismo gesto que el rumano: cadera atrás, rodillas casi fijas, espalda neutra y la barra pegada a las piernas. Como la barra no se va adelante, puedes concentrarte solo en el isquiotibial.'}]},
+ 'Remo con barra inclinado':{t:'Espalda, tirón horizontal pesado',
+  casa:[
+   {n:'Remo Pendlay',d:'pendlay',
+    c:'Como el remo con barra, pero con el torso paralelo al suelo y la barra partiendo DEL SUELO en cada repetición. Tira explosivo hacia la parte baja del pecho y vuelve a apoyarla. El descanso en el suelo le saca el peso a la espalda baja entre repetición y repetición, que es lo que más te conviene.'}],
+  gym:['=',
+   {n:'Remo en polea sentado',d:'remoPolea',
+    c:'Sentado, pies en la plataforma y rodillas un poco dobladas, la manija en V. Tira hacia el ombligo llevando los codos atrás y juntando las escápulas, con el pecho arriba. Vuelve lento hasta estirar los brazos, dejando que los hombros se vayan un poco adelante. El torso no se mece: si tienes que echarte atrás para tirar, el peso es mucho.'},
+   {n:'Remo en barra T',d:'remoT',
+    c:'De pie sobre la plataforma o a horcajadas sobre la barra, torso a unos 45° y espalda plana. Tira la manija hacia el pecho bajo, juntando las escápulas, y baja controlado. Si la máquina tiene apoyo para el pecho, úsalo: te saca la espalda baja de la ecuación. Ojo con el dibujo: es la máquina de remo T con los pies en la plataforma.'}]},
+ 'Remo con mancuerna a una mano':{t:'Espalda, a una mano',
+  casa:[
+   {n:'Remo con kettlebell a una mano',d:'remoDB',
+    c:'Igual que el remo con mancuerna: rodilla y mano apoyadas en la banca, la kettlebell de 20 colgando del otro brazo. Tira llevando el codo hacia la cadera, no hacia el hombro, con pausa de 1 segundo arriba, y baja controlado. Los 20 kg son más de lo que tienen tus mancuernas.'}],
+  gym:['=',
+   {n:'Remo en polea a una mano',d:'remoPolea1',
+    c:'Polea a la altura del pecho o un poco más abajo, una manija. De pie o sentado, tira llevando el codo atrás y pegado al cuerpo, gira un poco el tronco al final para alargar el recorrido, y vuelve lento estirando del todo. Las repeticiones son POR BRAZO.'},
+   {n:'Remo con pecho apoyado',d:'remoPecho',
+    c:'Boca abajo en un banco inclinado o en la máquina con apoyo de pecho, una mancuerna en cada mano. Tira llevando los codos atrás y juntando las escápulas, pausa 1 segundo y baja. El pecho apoyado le quita todo el trabajo a la espalda baja, así que la espalda alta puede ir al límite. Ojo con el dibujo: es una máquina con apoyo de pecho; si en tu gym es un banco inclinado con mancuernas, la postura es la misma.'}]},
+ 'Peso muerto rumano a una pierna con mancuernas':{t:'Lumbar y glúteo, unilateral',
+  casa:[
+   {n:'Peso muerto rumano a una pierna con kettlebell',d:'rdl1p',
+    c:'Igual que con mancuernas, pero con la kettlebell de 20 en la mano CONTRARIA a la pierna que apoya. De pie sobre una pierna, la otra se estira atrás mientras el torso baja, cadera y hombros juntos como una balanza. El peso de un solo lado obliga a la cadera a no girar: si se te abre, baja menos.'}],
+  gym:[
+   {n:'Hiperextensión en banco romano',d:'hiper',
+    c:'El banco que en tu casa no tienes, y lo mejor del gym para tu espalda baja. Cadera apoyada en el cojín, tobillos trabados. Baja el torso con la espalda neutra hasta casi la vertical y sube hasta quedar en línea recta con las piernas, no más: pasar de la línea es arquear la lumbar. Cuando 15 te salgan fáciles, abraza un disco contra el pecho.'},
+   '=',
+   {n:'Hiperextensión inversa',d:'hiperInv',busca:'reverse hyperextension',
+    c:'Boca abajo en la máquina o en un banco alto, con la cadera en el borde y las piernas colgando. Sube las piernas estiradas hasta la línea del cuerpo apretando el glúteo, y bájalas controladas. Descomprime la espalda baja en vez de cargarla: es la opción para los días que la lumbar está cansada.'}]},
+ 'Curl con barra de tríceps':{t:'Bíceps, con barra',
+  casa:[
+   {n:'Curl con barra recta',d:'curl',
+    c:'Codos pegados al costado y quietos, sin balancear el tronco. La barra recta deja la muñeca más girada que la angulada, así que carga un poco más el bíceps; si te molesta la muñeca, vuelve a la barra angulada.'},
+   {n:'Curl alterno con mancuernas',d:'curlKB',
+    c:'De pie, una mancuerna en cada mano. Sube una girando la palma hacia arriba a medida que subes, aprieta arriba y baja en 2 segundos; después la otra. Las repeticiones son POR BRAZO. Codos quietos al costado.'}],
+  gym:[
+   {n:'Curl con barra W',d:'curlW',
+    c:'La barra angulada del gym, como la tuya. Codos pegados al costado y quietos, sube sin balancear el tronco y baja en 2 segundos hasta estirar el brazo.'},
+   {n:'Curl en polea',d:'curlPolea',
+    c:'Polea abajo con barra recta o cuerda. Un paso atrás para que el cable tire desde el inicio. Codos pegados al costado, sube y baja lento. La polea mantiene la tensión también abajo, donde la barra no pesa nada.'},
+   {n:'Curl predicador',d:'predicador',
+    c:'Brazos apoyados en el atril, axilas pegadas al borde. Baja hasta casi estirar el codo —sin bloquearlo de golpe— y sube. El atril no te deja hacer trampa con el cuerpo, así que vas a usar menos peso que de pie: es normal.'}]},
+ 'Curl martillo con mancuernas':{t:'Bíceps y antebrazo',
+  casa:[
+   {n:'Curl inverso con barra',d:'curlInverso',
+    c:'La barra tomada con las palmas hacia abajo. Codos pegados al costado; sube y baja en 2 segundos. Carga el músculo de encima del codo y el antebrazo, igual que el martillo. Vas a mover bastante menos que en el curl normal.'}],
+  gym:['=',
+   {n:'Curl martillo en polea con cuerda',d:'martilloCuerda',
+    c:'Polea abajo con la cuerda, palmas enfrentadas. Codos pegados al costado; sube la cuerda hasta el pecho y baja lento. Es el martillo con tensión en todo el recorrido.'},
+   {n:'Curl inclinado con mancuernas',d:'curlIncl',
+    c:'Sentado en un banco inclinado a unos 45°, los brazos colgando hacia atrás. Sube las mancuernas sin adelantar los codos y baja hasta estirar del todo. Empezar con el brazo detrás del cuerpo estira el bíceps más que de pie: vas a usar menos peso.'}]},
+ 'Pájaros con mancuernas':{t:'Hombro de atrás',
+  casa:[
+   {n:'Pájaros boca abajo en la banca',d:'pajarosBanca',busca:'chest supported rear delt fly',
+    c:'Acostado boca abajo en la banca, una mancuerna liviana en cada mano colgando. Abre los brazos hacia los costados con los codos un poco doblados hasta la línea de la espalda, aprieta 1 segundo y baja. Con el pecho apoyado no hay forma de usar el impulso de la cadera.'}],
+  gym:[
+   {n:'Contractor inverso',d:'pecDeckInv',
+    c:'El pec deck sentado al revés, con el pecho contra el respaldo. Manijas a la altura de los hombros; abre los brazos hacia atrás con los codos un poco doblados hasta la línea del cuerpo y vuelve lento. Sin encoger los hombros. Ojo con el dibujo: ahí está sentado con la espalda en el respaldo; tú vas con el pecho contra el respaldo.'},
+   {n:'Face pull en polea',d:'facePull',
+    c:'Polea a la altura de la cara con la cuerda. Tira hacia la frente separando las puntas de la cuerda, codos altos, hasta que las manos queden a los lados de las orejas. Aprieta las escápulas y vuelve lento. Además del hombro de atrás, cuida el hombro de todo el empuje del día A.'},
+   '=']}
+},
+C:{
+ 'Sentadilla búlgara con mancuernas':{t:'Pierna, a una pierna',
+  casa:[
+   {n:'Zancada atrás con mancuernas',d:'zancadaAtras',
+    c:'De pie con una mancuerna en cada mano. Da un paso largo atrás y baja hasta que la rodilla de atrás quede a un palmo del suelo, torso vertical; empuja con el talón de adelante para volver. Alterna o haz todas de un lado: 10-12 son POR PIERNA. No necesita la banca.'}],
+  gym:['=',
+   {n:'Sentadilla búlgara en máquina Smith',d:'bulgaraSmith',
+    c:'La búlgara con la barra guiada sobre los hombros y el pie de atrás en un banco. Como la barra no se cae para ningún lado, puedes cargar mucho más que con tus mancuernas. Baja hasta que la rodilla de atrás quede a un palmo del suelo y empuja con la pierna de adelante.'},
+   {n:'Zancada atrás en máquina Smith',d:'zancadaSmith',
+    c:'La barra guiada sobre los hombros. Da un paso atrás y baja hasta que la rodilla trasera quede cerca del suelo, empuja con el talón de adelante y vuelve. 10-12 por pierna. La barra guiada te deja cargar sin preocuparte del equilibrio.'}]},
+ 'Peso muerto convencional':{t:'Peso muerto',
+  casa:[
+   {n:'Peso muerto sumo',d:'sumoDL',
+    c:'Pies bastante más abiertos que los hombros, puntas hacia afuera, y las manos tomando la barra por DENTRO de las piernas. Pecho arriba, cadera más baja que en el convencional, y empuja el suelo separando las rodillas. Con el torso más vertical le pide menos a la espalda baja y más a los aductores y al glúteo.'}],
+  gym:['=',
+   {n:'Peso muerto con barra hexagonal',d:'hexDL',
+    c:'Te paras DENTRO de la barra y la tomas por las manijas de los costados. Pecho arriba, espalda neutra y empuja el suelo hasta quedar de pie. El peso queda al lado del cuerpo y no adelante, así que la espalda baja sufre mucho menos que en el convencional: es la opción más amable con tu lumbar.'},
+   {n:'Peso muerto sumo',d:'sumoDL',
+    c:'Pies bastante más abiertos que los hombros, puntas hacia afuera, y las manos tomando la barra por DENTRO de las piernas. Pecho arriba, cadera más baja que en el convencional, y empuja el suelo separando las rodillas. Con el torso más vertical le pide menos a la espalda baja y más a los aductores y al glúteo.'}]},
+ 'Sentadilla goblet con mancuerna':{t:'Cuádriceps, volumen',
+  casa:[
+   {n:'Sentadilla goblet con kettlebell',d:'goblet',
+    c:'La goblet con la kettlebell de 20 tomada por los cuernos contra el pecho: son 5 kg más que tu mancuerna más pesada, y en esta casilla es lo que más carga en la casa. Profundidad completa, torso vertical, bajada de 3 segundos.'},
+   {n:'Sentadilla goblet con talones elevados',d:'gobletTalon',
+    c:'Los talones sobre un disco delgado. Con el talón arriba la rodilla puede ir más adelante y el torso queda más vertical, así que el cuádriceps trabaja más con el mismo peso. Baja en 3 segundos hasta el fondo.'}],
+  gym:[
+   {n:'Prensa de piernas',d:'prensa',
+    c:'Lo que no tienes en la casa: cuádriceps cargado con las dos piernas. Espalda y glúteo pegados al respaldo, pies al ancho de los hombros en el centro de la plataforma. Baja hasta que las rodillas lleguen a unos 90° sin que la cadera se despegue del asiento, y empuja sin bloquear las rodillas arriba. Si al bajar el glúteo se levanta, bajaste de más.'},
+   {n:'Sentadilla hack',d:'hack',
+    c:'Espalda pegada al respaldo, hombros bajo los cojines, pies al ancho de los hombros en el centro de la plataforma. Baja controlado hasta que el muslo quede paralelo a la plataforma y sube empujando con todo el pie. Carga el cuádriceps de verdad sin que la espalda tenga que aguantar la barra. Ojo con el dibujo: sale de lado e inclinado; la máquina te sostiene la espalda.'},
+   {n:'Extensión de cuádriceps',d:'extCuad',
+    c:'Sentado, el eje de la máquina alineado con la rodilla y el cojín sobre el tobillo. Estira las piernas hasta arriba, aprieta 1 segundo y baja en 2-3 segundos. Es el único ejercicio que trabaja el cuádriceps solo: va bien con muchas repeticiones y poco descanso.'}]},
+ 'Puente de glúteo con barra':{t:'Glúteo',
+  gym:[
+   {n:'Hip thrust en máquina',d:'hipMaq',busca:'hip thrust machine',
+    c:'Espalda alta contra el respaldo, el cinturón o el cojín de la máquina sobre la cadera, pies plantados al ancho de la cadera. Empuja con los talones hasta que el cuerpo quede recto del hombro a la rodilla, aprieta el glúteo un segundo arriba y baja controlado. Mentón hacia el pecho. Acá no topas en 90 kg: sube hasta el tope del rango con RIR 1 y entonces agrega peso.'},
+   {n:'Hip thrust con barra',d:'hipthrust',
+    c:'Espalda alta apoyada en un banco firme del gym, barra sobre la cadera con un cojín. Aprieta el glúteo un segundo arriba, mentón hacia el pecho. Es el ejercicio que tenías en la casa, con el mismo nombre para que siga su historial.'},
+   {n:'Patada de glúteo en máquina',d:'patadaMaq',
+    c:'Apoyado en la máquina, empuja la plataforma hacia atrás y arriba con el talón, estirando la cadera hasta la línea del cuerpo, y aprieta el glúteo arriba. Vuelve lento. Sin arquear la lumbar al final: la pierna sube con el glúteo, no con la espalda. Las repeticiones son POR PIERNA. Ojo con el dibujo: ahí es con una polea en el tobillo, no con la máquina; el gesto de la cadera es el mismo.'}]},
+ 'Elevación de talones con mancuernas':{t:'Gemelos',
+  casa:[
+   {n:'Gemelos a una pierna con mancuerna',d:'gem1p',
+    c:'De pie sobre una pierna en el borde de un escalón, la mancuerna en la mano del mismo lado y la otra mano afirmada en la pared. Baja el talón todo lo que puedas y sube hasta la punta con pausa arriba. Con una pierna sola tus mancuernas sí cargan. Las repeticiones son POR PIERNA. Ojo con el dibujo: ahí está en el suelo; tú vas en el borde de un escalón para que el talón baje más.'}],
+  gym:[
+   {n:'Gemelos en prensa',d:'gemPrensa',
+    c:'En la prensa, la punta de los pies en el borde de abajo de la plataforma y las piernas estiradas. Empuja con la punta hasta arriba, pausa, y deja que el talón baje todo lo que pueda. Sin doblar las rodillas.'},
+   {n:'Gemelos sentado en máquina',d:'gemSent',
+    c:'Sentado, el cojín sobre los muslos cerca de la rodilla y la punta de los pies en el escalón. Sube los talones hasta arriba, pausa, y baja todo el recorrido. Con la rodilla doblada trabaja el músculo de abajo del gemelo, el que de pie casi no se usa.'},
+   '=']},
+ 'Crunch con disco':{t:'Abdomen alto, con carga',
+  gym:[
+   {n:'Crunch en polea de rodillas',d:'crunchPolea',
+    c:'De rodillas frente a la polea alta, la cuerda tomada a los lados de la cabeza. La cadera queda quieta: enrolla la columna llevando los codos hacia los muslos, apretando el abdomen, y vuelve lento. Si te sientas sobre los talones o tiras con los brazos, el abdomen deja de trabajar. Es el abdominal con más carga que existe, y se sube de a un escalón de la pila.'},
+   '=',
+   {n:'Crunch en máquina',d:'crunchMaq',sinDibujo:1,busca:'ab crunch machine',
+    c:'Sentado en la máquina de abdominales, los pies trabados y las manos en las manijas o el pecho contra el cojín según el modelo. Enrolla el tronco hacia adelante apretando el abdomen y vuelve lento sin soltarte de golpe. No tires con los brazos: ellos solo sostienen.'}]},
+ 'Plancha lateral':{t:'Costado',
+  casa:[
+   {n:'Plancha lateral con elevación de cadera',d:'planchaDip',
+    c:'En plancha lateral, baja la cadera hasta casi rozar el suelo y súbela hasta pasar la línea del cuerpo; esa es una repetición. El costado ya no solo aguanta, también trabaja acortándose. 12 por lado.'}],
+  gym:['=',
+   {n:'Plancha lateral con disco en la cadera',d:'planchaLat',
+    c:'La plancha lateral de siempre con un disco apoyado sobre la cadera de arriba, sostenido con la mano. El disco es el escalón que a la plancha le faltaba. Parte con 5 kg; si la cadera se te cae, se acabó la serie.'},
+   {n:'Pallof en polea',d:'pallof',busca:'pallof press cable',
+    c:'De pie de costado a la polea, a la altura del pecho, la manija en las dos manos contra el esternón. Empuja las manos al frente hasta estirar los brazos y aguanta 2 segundos sin dejar que la polea te gire, y vuelve. Es anti-rotación: el tronco no se mueve. 12 por lado.'}]},
+ 'Crunch inverso con mancuerna':{t:'Abdomen bajo, con carga',
+  gym:[
+   {n:'Silla romana (rodillas al pecho)',d:'sillaRomana',
+    c:'Antebrazos en los apoyos, espalda pegada al respaldo y las piernas colgando. Sube las rodillas hacia el pecho y, en el último tramo, enrolla la pelvis hacia arriba: ese es el gesto que trabaja el abdomen bajo. Baja lento sin balancearte. A diferencia de la barra, acá no te cuelgas de las manos, así que el agarre no te limita después del peso muerto.'},
+   {n:'Crunch inverso en banco declinado',d:'crunchInv',
+    c:'Acostado en el banco declinado con la cabeza arriba, tomado del borde detrás de la cabeza. Sube las rodillas hacia el pecho hasta despegar la cadera del banco y baja en 3 segundos. Cuanto más inclinado el banco, más difícil: ese es el escalón.'},
+   '=']}
+},
+D:{
+ 'Press banca con barra':{t:'Pecho, volumen',
+  gym:['=',
+   {n:'Press banca con mancuernas',d:'dbBench',
+    c:'Moderado y limpio, como todo el día D: cerca del 80% de lo que usas el día A con mancuernas. Codos a 45° del cuerpo, baja en 2 segundos hasta sentir el pecho estirado y empuja juntando un poco las mancuernas. Ojo con el dibujo: ahí la banca sale inclinada; tú la usas plana.'},
+   {n:'Press de pecho en máquina',d:'pechoMaq',
+    c:'Moderado y limpio: hoy es volumen, no récord. Manijas a la altura de la mitad del pecho, espalda pegada al respaldo, empuja sin bloquear los codos y vuelve lento.'}]},
+ 'Remo con barra':{t:'Espalda, volumen',
+  casa:[
+   {n:'Remo Pendlay',d:'pendlay',
+    c:'Torso paralelo al suelo y la barra partiendo del suelo en cada repetición. Tira hacia la parte baja del pecho y apóyala. Moderado: el día D es volumen.'}],
+  gym:['=',
+   {n:'Remo en polea sentado',d:'remoPolea',
+    c:'Tira la manija en V hacia el ombligo juntando las escápulas, pecho arriba, sin mecer el torso. Vuelve lento estirando los brazos.'},
+   {n:'Remo en máquina',d:'remoMaq',
+    c:'Pecho contra el apoyo, manijas al alcance con los brazos estirados. Tira llevando los codos atrás y juntando las escápulas, pausa 1 segundo, y vuelve lento. Con el pecho apoyado, la espalda baja descansa.'}]},
+ 'Dominada en la barra':{t:'Espalda, tirón vertical',
+  casa:[
+   {n:'Dominada supina (palmas hacia ti)',d:'supina',
+    c:'Con las palmas mirándote y las manos al ancho de los hombros. Hoy con RIR 2, como el resto del día D. Hombros activos, barbilla sobre la barra y bajada de 2-3 segundos.'}],
+  gym:['=',
+   {n:'Jalón al pecho abierto',d:'jalon',
+    c:'Hombros hundidos antes de tirar, codos hacia las costillas y la barra a la parte alta del pecho; sube lento. Con RIR 2: el día D es volumen limpio.'},
+   {n:'Jalón con agarre cerrado',d:'jalonCerrado',
+    c:'Manija en V, palmas enfrentadas. Hombros hundidos primero, la manija al pecho y subida lenta. RIR 2. Ojo con el dibujo: el agarre es en V, con las manos juntas y las palmas enfrentadas.'}]},
+ 'Sentadilla goblet con mancuerna':{t:'Cuádriceps',
+  casa:[
+   {n:'Sentadilla goblet con kettlebell',d:'goblet',
+    c:'Con la kettlebell de 20 por los cuernos contra el pecho. Profundidad completa y torso vertical.'}],
+  gym:[
+   {n:'Prensa de piernas',d:'prensa',
+    c:'Espalda y glúteo pegados al respaldo, pies al ancho de los hombros. Baja hasta 90° de rodilla sin despegar la cadera y empuja sin bloquear. Moderado: el día D es volumen.'},
+   {n:'Sentadilla hack',d:'hack',
+    c:'Espalda pegada al respaldo, baja hasta que el muslo quede paralelo a la plataforma y sube con todo el pie. Moderado y limpio. Ojo con el dibujo: sale de lado e inclinado; la máquina te sostiene la espalda.'},
+   '=']},
+ 'Press militar con mancuernas':{t:'Hombro',
+  casa:[
+   {n:'Press a una mano con kettlebell',d:'militarKB',sinDibujo:1,busca:'single arm kettlebell overhead press',
+    c:'La kettlebell de 20 apoyada en el antebrazo a la altura del hombro. Glúteo y abdomen apretados, empuja hasta estirar el brazo y baja controlado. POR BRAZO. Si te inclinas al lado contrario, el peso es mucho.'},
+   {n:'Press Arnold',d:'arnold',
+    c:'Sentado en la banca, mancuernas frente a la cara con las palmas mirándote. Al subir, gira las palmas hacia adelante hasta terminar con los brazos estirados sobre la cabeza; al bajar, el giro al revés. El giro recorre todo el hombro, también la parte de adelante.'}],
+  gym:['=',
+   {n:'Press de hombro en máquina',d:'hombroMaq',
+    c:'Manijas a la altura de los hombros, espalda pegada al respaldo. Empuja sin bloquear y baja lento. Moderado: el día D es volumen.'},
+   {n:'Press Arnold',d:'arnold',
+    c:'Sentado con respaldo, mancuernas frente a la cara con las palmas mirándote; sube girando las palmas hacia adelante y baja deshaciendo el giro. Recorre todo el hombro.'}]},
+ 'Superman en colchoneta':{t:'Lumbar',
+  gym:[
+   {n:'Hiperextensión en banco romano',d:'hiper',
+    c:'Cadera en el cojín y tobillos trabados. Baja con la espalda neutra y sube hasta la línea del cuerpo, no más. Es la versión con escalón del superman: cuando 15 te queden fáciles, abraza un disco.'},
+   '=',
+   {n:'Hiperextensión inversa',d:'hiperInv',busca:'reverse hyperextension',
+    c:'Boca abajo con la cadera en el borde y las piernas colgando. Sube las piernas estiradas hasta la línea del cuerpo apretando el glúteo y bájalas controladas. Descomprime la lumbar en vez de cargarla.'}]},
+ 'Bird dog':{t:'Anti-rotación',
+  casa:[
+   {n:'Plancha con toque de hombro',d:'toqueHombro',
+    c:'En plancha alta con las manos bajo los hombros y los pies un poco abiertos. Toca el hombro contrario con una mano, vuélvela al suelo y cambia. La cadera NO se mece: imagina un vaso de agua en la espalda baja. 12 por lado.'}],
+  gym:['=',
+   {n:'Pallof en polea',d:'pallof',busca:'pallof press cable',
+    c:'De pie de costado a la polea a la altura del pecho, la manija contra el esternón. Empuja las manos al frente, aguanta 2 segundos sin dejar que te gire, y vuelve. 12 por lado.'},
+   {n:'Pallof de rodillas',d:'pallofRod',busca:'half kneeling pallof press',
+    c:'El pallof con una rodilla en el suelo y la otra adelante en 90°. De rodillas la cadera no puede ayudar, así que el tronco trabaja solo. Empuja, aguanta 2 segundos, vuelve. 12 por lado.'}]}
+},
+E:{
+ 'Halo de rodillas con kettlebell':{t:'Anti-extensión',
+  casa:[
+   {n:'Halo de rodillas con disco',d:'haloDisco',sinDibujo:1,busca:'kneeling plate halo exercise',
+    c:'El halo con un disco de 10 kg tomado con las dos manos por los bordes, en vez de la kettlebell. Es el escalón que falta entre la de 8 y la de 20: misma vuelta alrededor de la cabeza, de rodillas, cuerpo recto y sin dejar que la lumbar se arquee cuando el peso pasa por detrás.'}],
+  gym:[
+   {n:'Rueda abdominal',d:'rueda',
+    c:'De rodillas sobre una colchoneta, la rueda en el suelo bajo los hombros. Rueda hacia adelante estirando el cuerpo hasta donde puedas sin que la lumbar se hunda, y vuelve tirando con el abdomen, no con los brazos. Parte con un recorrido corto y alárgalo semana a semana: ese es el escalón. Si sientes la espalda baja, fuiste demasiado lejos. Ojo con el dibujo: el tercer cuadro sale raro; guíate por el del medio, de rodillas.'},
+   {n:'Halo de rodillas con disco',d:'haloDisco',sinDibujo:1,busca:'kneeling plate halo exercise',
+    c:'El halo con un disco de 10 o 15 kg tomado con las dos manos por los bordes. En el gym hay discos de todos los pesos, así que acá se tapa el salto de 12 kg entre tus dos kettlebells. Misma vuelta alrededor de la cabeza, de rodillas y sin que la lumbar se arquee.'},
+   '=']},
+ 'Iron trident con kettlebell':{t:'Anti-rotación cargada',
+  casa:[
+   {n:'Iron trident con mancuerna',d:'tridentDB',sinDibujo:1,busca:'iron trident kettlebell core exercise',
+    c:'El trident con una mancuerna de 12,5 o 15 kg tomada por un extremo, en vez de la kettlebell. Es el paso del medio entre la de 8 y la de 20. Mismos tres toques por repetición, lento y apoyándola de verdad cada vez, con el pecho arriba.'}],
+  gym:[
+   {n:'Pallof en polea',d:'pallof',busca:'pallof press cable',
+    c:'De pie de costado a la polea a la altura del pecho, la manija en las dos manos contra el esternón. Empuja las manos al frente hasta estirar los brazos y aguanta 2 segundos sin dejar que la polea te gire; vuelve. Es lo mismo que el trident —aguantar la rotación— con peso que se sube de a un escalón. 10 por lado.'},
+   {n:'Iron trident con mancuerna',d:'tridentDB',sinDibujo:1,busca:'iron trident kettlebell core exercise',
+    c:'El trident con una mancuerna del peso que necesites, tomada por un extremo. Mismos tres toques por repetición, lento y con el pecho arriba.'},
+   '=']},
+ 'Crunch con kettlebell en el pecho':{t:'Flexión cargada',
+  casa:[
+   {n:'Crunch con disco',d:'crunchKB',
+    c:'El crunch con un disco abrazado en vez de la kettlebell: con los discos puedes subir de a 2,5 kg, y así no hay que saltar de la de 8 a la de 20. Enrolla la columna hasta despegar los omóplatos y baja en 3 segundos, con la espalda baja pegada al suelo. Ojo con el dibujo: es el del crunch con kettlebell; el recorrido es el mismo.'}],
+  gym:[
+   {n:'Crunch en polea de rodillas',d:'crunchPolea',
+    c:'De rodillas frente a la polea alta, la cuerda a los lados de la cabeza. La cadera quieta: enrolla la columna llevando los codos hacia los muslos y vuelve lento. Si te sientas sobre los talones o tiras con los brazos, el abdomen deja de trabajar.'},
+   '=',
+   {n:'Crunch declinado con disco',d:'crunchDecl',
+    c:'En el banco declinado con los pies trabados, un disco abrazado contra el pecho. Enrolla el tronco hasta despegar la espalda alta y baja lento, sin llegar a apoyar la cabeza. Más inclinación del banco es más difícil. Ojo con el dibujo: ahí sube hasta sentarse; tú solo despegas la espalda alta.'}]},
+ 'Elevación de piernas colgado':{t:'Abdomen bajo',
+  gym:['=',
+   {n:'Silla romana (rodillas al pecho)',d:'sillaRomana',
+    c:'Antebrazos en los apoyos y espalda contra el respaldo. Sube las rodillas al pecho y enrolla la pelvis hacia arriba en el último tramo. Sin colgarte de las manos: el agarre descansa para la marcha cargada.'},
+   {n:'Crunch inverso en banco declinado',d:'crunchInv',
+    c:'Acostado en el banco declinado con la cabeza arriba, tomado del borde. Sube las rodillas hasta despegar la cadera y baja en 3 segundos. Más inclinación, más difícil.'}]},
+ 'Elevación de rodillas oblicua colgado':{t:'Oblicuos acortándose',
+  casa:[
+   {n:'Giro ruso con disco',d:'giroRuso',
+    c:'Sentado con las rodillas dobladas, el torso inclinado atrás unos 45° y la espalda recta. El disco frente al pecho: llévalo a un costado de la cadera girando el tronco entero, no solo los brazos, y después al otro. LENTO; si se vuelve un vaivén rápido, el impulso hace el trabajo. 10-12 en total. Si te molesta la espalda baja, apoya los talones en el suelo.'}],
+  gym:['=',
+   {n:'Leñador en polea, de arriba abajo',d:'lenador',
+    c:'Polea alta, de costado a la máquina, la manija en las dos manos. Lleva la manija en diagonal hacia la cadera contraria girando el tronco y pivotando el pie de atrás, con los brazos casi estirados, y vuelve lento. El giro sale del tronco, no de los brazos. 10-12 en total, la mitad por lado.'},
+   {n:'Giro ruso con disco',d:'giroRuso',
+    c:'Sentado con el torso inclinado atrás y la espalda recta, el disco frente al pecho. Llévalo de un costado de la cadera al otro girando el tronco entero, lento. 10-12 en total.'}]},
+ 'Marcha cargada a una mano':{t:'Anti-inclinación',
+  casa:[
+   {n:'Marcha cargada con mancuerna',d:'marchaDB',sinDibujo:1,busca:'single arm farmer march',
+    c:'La marcha con tu mancuerna de 15 en una mano en vez de la kettlebell de 20. Sirve para los días que llegas con el agarre muy gastado de los colgados. Igual que siempre: rodilla a la altura de la cadera, lento, sin inclinarte hacia el peso. 6 por pierna, y cambias de mano.'}],
+  gym:['=',
+   {n:'Marcha cargada con mancuerna pesada',d:'marchaDB',sinDibujo:1,busca:'single arm farmer march',
+    c:'En el gym hay mancuernas de 25 o 30 kg: es la forma de seguir cargando esta casilla cuando la de 20 se te quede corta. Una en una mano, marcha en el sitio con la rodilla a la altura de la cadera, lento, sin inclinarte. 6 por pierna y cambias de mano.'},
+   {n:'Flexión lateral en polea',d:'flexLatPolea',sinDibujo:1,busca:'cable side bend',
+    c:'De pie de costado a la polea baja, la manija en la mano más cercana. Inclínate hacia la polea dejando que el peso te baje, y vuelve a la vertical usando el costado contrario. Lento, sin girar el tronco. 12 por lado.'}]},
+ 'Puente de glúteo':{t:'Glúteo',
+  gym:['=',
+   {n:'Hip thrust en máquina, liviano',d:'hipMaq',busca:'hip thrust machine',
+    c:'La máquina de hip thrust con poco peso: hoy no es el día del glúteo, es el contrapeso de todo el abdomen. 15 repeticiones con un segundo apretado arriba.'},
+   {n:'Patada de glúteo en polea',d:'patadaPolea',
+    c:'La tobillera en la polea baja, de frente a la máquina y afirmado. Lleva la pierna estirada hacia atrás apretando el glúteo, sin arquear la lumbar, y vuelve lento. 15 por pierna.'}]},
+ 'Press de tríceps sobre la cabeza con kettlebell':{t:'Tríceps estirado',
+  casa:[
+   {n:'Extensión sobre la cabeza con mancuerna',d:'tricepsCabeza',
+    c:'Una mancuerna tomada con las dos manos por el disco de arriba, subida sobre la cabeza. Codos apuntando al techo, baja por detrás de la nuca y estira. Con tu mancuerna de 15 te queda entre la kettlebell de 8 y la de 20.'}],
+  gym:[
+   {n:'Extensión de tríceps sobre la cabeza en polea',d:'triPoleaCabeza',
+    c:'Polea abajo con la cuerda, de espaldas a la máquina. Codos fijos apuntando adelante y arriba; estira los brazos sobre la cabeza y vuelve lento hasta sentir el tríceps estirado.'},
+   '=',
+   {n:'Extensión sobre la cabeza con mancuerna',d:'tricepsCabeza',
+    c:'Una mancuerna con las dos manos por el disco de arriba. Codos al techo, baja por detrás de la nuca y estira.'}]},
+ 'Curl a dos manos con kettlebell':{t:'Bíceps',
+  casa:[
+   {n:'Curl alterno con mancuernas',d:'curlKB',
+    c:'Una mancuerna en cada mano; sube una girando la palma hacia arriba, aprieta y baja en 2 segundos, y después la otra. Las repeticiones son POR BRAZO. Codos quietos.'}],
+  gym:[
+   {n:'Curl en polea',d:'curlPolea',
+    c:'Polea abajo con barra o cuerda, un paso atrás. Codos pegados al costado, sube y baja lento.'},
+   '=',
+   {n:'Curl con barra W',d:'curlW',
+    c:'Codos pegados al costado y quietos, sube sin balancear el tronco y baja en 2 segundos.'}]}
+}
+};
+
+const LUGARES = [['casa','Casa'],['gym','Gym']];
+const lugar = () => S.cfg.lugar==='gym' ? 'gym' : 'casa';
+const fijaDeCasilla = e => !!(e.cardio || e.sinPeso);
+/* Las opciones de una casilla en un lugar, ya armadas como ejercicios
+   completos: heredan de la casilla lo que es de la casilla (series,
+   repeticiones, RIR, descanso) y NADA del ejercicio original (ni dibujo, ni
+   texto, ni video), o una opción sin dibujo propio mostraría el del PLAN. */
+function opcionesDe(d, e, lug){
+  const o = !fijaDeCasilla(e) && OPC[d] && OPC[d][e.n];
+  if(!o) return [e];
+  const lista = lug==='gym' ? (o.gym||['=']) : ['=', ...(o.casa||[])];
+  return lista.map(x => x==='=' ? e : {s:e.s, r:e.r, rir:e.rir, rest:e.rest, ...x});
+}
+/* Última fecha en que hizo ese ejercicio (con repeticiones anotadas). */
+function ultimaVez(n){
+  let u = '';
+  S.fuerza.forEach(x=>{ if(x.ej===n && nz(x.reps)>0 && x.f>u) u=x.f; });
+  return u;
+}
+const claveElec = (d, e, lug) => `${d}|${e.n}|${lug}`;
+/* Cuál opción toca hoy, en este orden:
+   1) la que eligió él hoy a mano (la máquina estaba ocupada);
+   2) la que ya tiene series anotadas hoy — si no, al volver a abrir la app a
+      media sesión la rotación le cambiaría el ejercicio bajo los dedos;
+   3) la que lleva más tiempo sin hacer, y entre las nunca hechas, la primera
+      de la lista. Eso es "rotar". */
+function eleccion(d, e, ops, lug){
+  if(ops.length===1) return {e:ops[0], por:'unica'};
+  const m = (S.elec && S.elec.f===hoy() && S.elec.m) || {};
+  const man = ops.find(x=>x.n===m[claveElec(d,e,lug)]);
+  if(man) return {e:man, por:'mano'};
+  const hecha = ops.find(x=>S.fuerza.some(r=>r.f===hoy() && r.ej===x.n && nz(r.reps)>0));
+  if(hecha) return {e:hecha, por:'hecha'};
+  let mejor = ops[0], uMejor = ultimaVez(ops[0].n);
+  ops.slice(1).forEach(x=>{ const u=ultimaVez(x.n); if(u<uMejor){ mejor=x; uMejor=u; } });
+  return {e:mejor, por:'rota'};
+}
+/* El día tal como se entrena HOY en el lugar elegido: una fila por casilla,
+   con sus opciones y la que toca. Todo lo que pinta o cuenta el día pasa por
+   acá, para que la lista, el mapa muscular, el historial y el guardado hablen
+   del mismo ejercicio. */
+function planHoy(d, lug){
+  lug = lug || lugar();
+  return (PLAN[d]||[]).map(e=>{
+    const ops = opcionesDe(d, e, lug);
+    const el = eleccion(d, e, ops, lug);
+    return {casilla:e, ops, e:el.e, por:el.por};
+  });
+}
+/* Todos los nombres que pueden anotarse en un día, en casa o en el gym: lo
+   que cuenta el guardado tiene que ver las series aunque haya cambiado de
+   opción o de lugar a media sesión. */
+function nombresDelDia(d){
+  const s = new Set();
+  (PLAN[d]||[]).forEach(e=>LUGARES.forEach(([l])=>opcionesDe(d,e,l).forEach(x=>s.add(x.n))));
+  return s;
+}
+
 /* ============================================================
    3. ESTADO Y ALMACENAMIENTO
    ============================================================ */
 const KEY = 'entreno:v1';
 const DEF = {
   cfg:{alt:190,peso:90,edad:33,sexo:1,act:1.55,def:0.17,prot:2.1,gr:0.85,inicio:'',
-       resp:''},   /* resp = día en que generó el último respaldo JSON. Ver avisoRespaldo() */
+       resp:'',    /* resp = día en que generó el último respaldo JSON. Ver avisoRespaldo() */
+       lugar:'casa'},/* casa | gym: qué opciones muestra Entrenar. Ver OPC */
   semana:1,      /* solo respaldo: la semana de verdad sale de la fecha, ver semanaDe() */
   fuerza:[],   // {f,sem,dia,ej,serie,kg,reps,rir}
   cardio:[],   // {f,sem,dia,tipo,min,metros,kcal,nota} — tipo = la modalidad que eligió
@@ -1016,7 +1483,9 @@ const DEF = {
                //   que al usarla vuelve a pasar por el estimador y no guarda
                //   macros congelados que quedarían viejos si cambia la tabla.
   medidas:[],  // {sem,f,peso,cint,cintE,cad,pecho,brazo,muslo,nota} — UNO POR FECHA
-  sesiones:[]  // {f,sem,dia,sueno,zona,dolor,nota} — cómo llegaste a entrenar
+  sesiones:[], // {f,sem,dia,lugar,sueno,zona,dolor,nota} — cómo llegaste a entrenar
+  elec:{f:'',m:{}} // la opción que eligió A MANO hoy, por casilla: {f:fecha, m:{'A|casilla|gym':nombre}}.
+                   //   Vale solo el día en que se eligió; al día siguiente vuelve a mandar la rotación.
 };
 /* La molestia sirve si es accionable: por eso cada zona sabe qué ejercicios
    la cargan, y la alerta dice cuáles bajar en vez de un "cuidado" genérico. */
@@ -1043,6 +1512,7 @@ async function load(){
   /* un respaldo anterior al registro por comidas no trae la lista */
   if(!Array.isArray(S.alimentos)) S.alimentos = [];
   if(!Array.isArray(S.platos)) S.platos = [];
+  if(!S.elec || typeof S.elec!=='object' || !S.elec.m) S.elec = {f:'',m:{}};
   if(!fechaMs(S.cfg.inicio)){
     /* Primera vez con semanas automáticas. El plan empezó el día del registro
        más antiguo que exista; si no hay ninguno, hoy. No se toca ningún dato:
@@ -1324,9 +1794,12 @@ function sugerencia(e){
         && (x.rir===''||x.rir===undefined||nz(x.rir)<=(e.rir===undefined?99:e.rir)));
   /* Con mancuernas no existe el medio kilo: se sube al siguiente par que tengas. */
   const conMancuerna = /mancuerna|goblet/i.test(e.n) || /Elevaciones laterales/i.test(e.n);
+  /* La pila de una máquina o una polea sube de a lo que traiga ese modelo
+     (2,5, 5 o 7 kg), así que tampoco se le inventa la cifra. */
+  const conPila = /máquina|polea|prensa|hack|jalón|contractor|smith|silla romana/i.test(e.n);
   return {f, hechas, sube:llego,
     txt: llego
-      ? (conMancuerna ? 'sube al siguiente escalón de mancuerna' : `sube a ${coma(kg+2.5)} kg`)
+      ? (conPila ? 'sube un escalón de la pila' : conMancuerna ? 'sube al siguiente escalón de mancuerna' : `sube a ${coma(kg+2.5)} kg`)
       : `repite ${coma(kg)} kg`};
 }
 /* ============================================================
@@ -1551,9 +2024,12 @@ function vHoy(){
      de un día que no está. Hoy no debería dispararse (el F retirado conserva
      su PLAN), y está para el día que se retire otro. */
   if(!PLAN[dia]) dia = 'A';
-  const list = PLAN[dia];
+  const lug = lugar();
+  const list = planHoy(dia, lug);
   let h = `<h2>Sesión de hoy</h2>
-  <p class="lede">Elige el día, abre cada ejercicio para ver la técnica y anota tus series. Se va guardando solo mientras escribes; al terminar, aprieta <b>Guardar sesión</b> abajo y ahí ves qué quedó registrado.</p>
+  <p class="lede">Elige dónde estás y el día, abre cada ejercicio para ver la técnica y anota tus series. Se va guardando solo mientras escribes; al terminar, aprieta <b>Guardar sesión</b> abajo y ahí ves qué quedó registrado.</p>
+  <div class="lugar" role="group" aria-label="Dónde entrenas hoy">${LUGARES.map(([id,txt])=>
+    `<button class="lug" data-lugar="${id}" aria-pressed="${lug===id}">${txt}</button>`).join('')}</div>
   <div class="aviso-dia">${avisoDelDia()}</div>
   <div class="days">`;
   const hechos = diasHechosSemana();
@@ -1568,7 +2044,7 @@ function vHoy(){
   h+=`</div>`;
   h+= mapaMusDia(dia);
 
-  list.forEach((e,idx)=>{
+  list.forEach(({casilla, ops, e, por},idx)=>{
     const drawn = frames(e.d);
     const nSets = e.s||1;
     let done=0;
@@ -1576,10 +2052,21 @@ function vHoy(){
     h+=`<article class="ex${done===nSets?' done':''}" data-open="0" data-ex="${idx}">
       <button class="ex-head" data-toggle="${idx}">
         <span class="ex-idx">${e.tag||(e.cardio?'CAR':String(idx+1).padStart(2,'0'))}</span>
-        <span class="ex-name">${e.n}<em>${e.s>1?e.s+' series · ':''}${e.r}${e.rir!==undefined?' · RIR '+e.rir:''}${e.rest&&e.rest!=='—'?' · '+e.rest:''}${e.sug?' · sugerido: '+e.sug:''}</em></span>
+        <span class="ex-name">${e.n}<em>${((OPC[dia]||{})[casilla.n]||{}).t ? OPC[dia][casilla.n].t+' · ' : ''}${e.s>1?e.s+' series · ':''}${e.r}${e.rir!==undefined?' · RIR '+e.rir:''}${e.rest&&e.rest!=='—'?' · '+e.rest:''}${e.sug?' · sugerido: '+e.sug:''}</em></span>
         <span class="chev">▸</span>
       </button>
       <div class="ex-body">`;
+    /* Las opciones para rotar, arriba de todo: lo primero que hay que decidir
+       al abrir el ejercicio es CUÁL se hace, antes de mirar su técnica. */
+    if(ops.length>1){
+      h+=`<div class="opcs" role="group" aria-label="Opciones para esta casilla">${ops.map(o=>{
+        const u = ultimaVez(o.n);
+        const cuando = !u ? 'nunca' : u===hoy() ? 'hoy'
+          : (()=>{ const n=Math.round((fechaMs(hoy())-fechaMs(u))/86400000); return n===1?'ayer':`hace ${n} días`; })();
+        return `<button class="opc" data-opc="${idx}" data-opn="${esc(o.n)}" aria-pressed="${o.n===e.n}"><span>${o.n}</span><small>${cuando}</small></button>`;
+      }).join('')}</div>`;
+      if(por==='rota') h+=`<p class="toca">Te toca esta: es la que llevas más tiempo sin hacer. ${lug==='gym'?'Si la máquina está ocupada, toca otra.':'Si hoy prefieres otra, tócala.'}</p>`;
+    }
     if(drawn){
       /* La leyenda (la silueta gris, la flecha, el punto de la cara) explica el
          dibujo de palitos. En una ilustración no hay nada de eso que explicar,
@@ -1610,7 +2097,9 @@ function vHoy(){
     /* Tres ejercicios del día F no existen dibujados en la biblioteca. Sin
        este aviso, abrir uno y no encontrar el dibujo se lee como que la app
        falló; con él se lee como lo que es, y el botón de abajo lo resuelve. */
-    if(e.sinDibujo) h+=`<p class="pieilu">Este no tiene dibujo en la biblioteca — míralo en el video de aquí abajo.</p>`;
+    /* Sin `sinDibujo` explícito también: varias opciones del gym no existen
+       en la biblioteca, y abrir una y no encontrar nada se leería como falla. */
+    if(!e.cardio && !e.sinPeso && (e.sinDibujo || !drawn)) h+=`<p class="pieilu">Este no tiene dibujo en la biblioteca — míralo en el video de aquí abajo.</p>`;
     h+= mapaMus(e.d);
     h+=`<p class="cue">${e.c}</p>`;
     /* En el cardio la modalidad la eliges tú, así que un video de "a tu
@@ -2591,6 +3080,9 @@ function weekAgg(w){
   const f=S.fuerza.filter(x=>semanaDe(x.f)===w);
   const vol=f.reduce((a,x)=>a+nz(x.kg)*nz(x.reps),0);
   const ses=new Set(f.filter(x=>nz(x.reps)>0).map(x=>x.f)).size;
+  /* días con al menos una serie anotada en el gym; las series anteriores al
+     25-oct no traen lugar y cuentan como casa, que es donde entrenaba */
+  const gym=new Set(f.filter(x=>nz(x.reps)>0 && x.lugar==='gym').map(x=>x.f)).size;
   const c=S.cardio.filter(x=>semanaDe(x.f)===w);
   const min=c.reduce((a,x)=>a+nz(x.min),0);
   /* Los días con comida salen de las DOS listas: desde que las kcal se
@@ -2603,7 +3095,7 @@ function weekAgg(w){
   const se=S.sesiones.filter(x=>semanaDe(x.f)===w);
   const cs=se.filter(x=>nz(x.sueno)>0);
   const sueno = cs.length ? +(cs.reduce((a,x)=>a+nz(x.sueno),0)/cs.length).toFixed(1) : null;
-  return {w,ses,vol:Math.round(vol),min,dias:co.length,sueno,
+  return {w,ses,gym,vol:Math.round(vol),min,dias:co.length,sueno,
           kcal:avg('kcal'),p:avg('p'),c:avg('c'),g:avg('g'),
           /* ⚠solo los días que TIENEN adherencia anotada. Promediando los
              vacíos como cero salía «0.0» y la Lectura avisaba «adherencia
@@ -2644,7 +3136,7 @@ function vResumen(){
     const p=rows[i-1];
     const dp=(p&&r.peso&&p.peso)?(r.peso-p.peso).toFixed(1):'';
     const dc=(p&&r.cint&&p.cint)?(r.cint-p.cint).toFixed(1):'';
-    h+=`<tr><td>${r.w}</td><td>${r.ses||''}</td><td>${r.vol||''}</td><td>${r.min||''}</td>
+    h+=`<tr><td>${r.w}</td><td>${r.ses||''}${r.gym?` <small>(${r.gym} gym)</small>`:''}</td><td>${r.vol||''}</td><td>${r.min||''}</td>
       <td>${r.dias||''}</td><td>${r.kcal??''}</td><td>${r.p??''}</td><td>${r.adh??''}</td>
       <td>${r.sueno!=null?coma(r.sueno)+' h':''}</td>
       <td>${coma(un(r.peso)??'')}${dp?` <small>(${dp>0?'+':''}${coma(dp)})</small>`:''}</td>
@@ -2732,7 +3224,7 @@ function expText(){
   weeks.forEach(w=>{
     const r=weekAgg(w);
     o+=`--- SEMANA ${w} ---\n`;
-    o+=`Sesiones: ${r.ses} · Volumen: ${r.vol} kg · Cardio: ${r.min} min\n`;
+    o+=`Sesiones: ${r.ses}${r.gym?` (${r.gym} en el gym)`:''} · Volumen: ${r.vol} kg · Cardio: ${r.min} min\n`;
     o+=`Nutrición (${r.dias} días): ${r.kcal??'-'} kcal · ${r.p??'-'} g prot · ${r.c??'-'} g carb · ${r.g??'-'} g grasa · adherencia ${r.adh??'-'}\n`;
     o+=`Peso: ${un(r.peso)??'-'} kg${r.pesajes>1?` (media de ${r.pesajes} pesajes)`:''} · Cintura: ${r.cint??'-'} cm · Sueño: ${r.sueno??'-'} h\n`;
     const mol=S.sesiones.filter(x=>semanaDe(x.f)===w && x.zona && x.zona!=='Ninguna' && x.dolor && x.dolor!=='—');
@@ -2756,7 +3248,7 @@ function expText(){
     const ejs=[...new Set(S.fuerza.filter(x=>semanaDe(x.f)===w&&nz(x.reps)>0).map(x=>x.ej))];
     ejs.forEach(e=>{
       const st=S.fuerza.filter(x=>semanaDe(x.f)===w&&x.ej===e&&nz(x.reps)>0);
-      o+=`  ${e}: ${st.map(x=>`${nz(x.kg)>0?x.kg+'×':''}${x.reps}${x.rir!==''&&x.rir!==undefined?'@'+x.rir:''}`).join(', ')}\n`;
+      o+=`  ${e}${st.some(x=>x.lugar==='gym')?' [gym]':''}: ${st.map(x=>`${nz(x.kg)>0?x.kg+'×':''}${x.reps}${x.rir!==''&&x.rir!==undefined?'@'+x.rir:''}`).join(', ')}\n`;
     });
     o+=`\n`;
   });
@@ -2911,7 +3403,7 @@ function refrescarAjustes(){
    repeticiones (o minutos): un peso escrito sin reps todavía no es una serie. */
 function resumenSesion(){
   const f = hoy();
-  const nombres = new Set(PLAN[dia].map(e=>e.n));
+  const nombres = nombresDelDia(dia);
   const series = S.fuerza.filter(x=>x.f===f && nombres.has(x.ej) && nz(x.reps)>0);
   /* El cardio ya no se puede buscar por nombre prescrito: ahora la modalidad
      la elige él. Se busca el bloque del día. */
@@ -2955,6 +3447,27 @@ document.addEventListener('click',e=>{
     return;
   }
   if(b.dataset.day){ dia=b.dataset.day; render(); return; }
+  if(b.dataset.lugar){
+    S.cfg.lugar = b.dataset.lugar;
+    /* la sesión de hoy queda marcada con el lugar solo si ya existe; mirar
+       las opciones del gym desde la casa no crea una sesión */
+    const ses = S.sesiones.find(x=>x.f===hoy());
+    if(ses) ses.lugar = lugar();
+    saveNow(); render(); return;
+  }
+  if(b.dataset.opc!==undefined){
+    const idx = +b.dataset.opc, fila = planHoy(dia)[idx];
+    if(!fila) return;
+    if(!S.elec || S.elec.f!==hoy()) S.elec = {f:hoy(), m:{}};
+    S.elec.m[claveElec(dia, fila.casilla, lugar())] = b.dataset.opn;
+    saveNow();
+    /* render() rehace la lista cerrada; el ejercicio que estabas mirando se
+       vuelve a abrir, o elegir una opción te lo cerraría en la cara */
+    render();
+    const a = document.querySelector(`.ex[data-ex="${idx}"]`);
+    if(a) a.dataset.open = '1';
+    return;
+  }
   if(b.dataset.toggle!==undefined){
     const a=b.closest('.ex'); a.dataset.open = a.dataset.open==='1'?'0':'1'; return;
   }
@@ -3047,7 +3560,7 @@ document.addEventListener('click',e=>{
     const abierta = !caja.classList.contains('hide');
     if(abierta){ caja.classList.add('hide'); b.textContent='Historial'; return; }
     /* se arma al abrirla para que muestre lo de recién, no lo del render */
-    caja.innerHTML = historialHTML(PLAN[dia][+b.dataset.hist].n);
+    caja.innerHTML = historialHTML(planHoy(dia)[+b.dataset.hist].e.n);
     caja.classList.remove('hide'); b.textContent='Ocultar historial';
     return;
   }
@@ -3096,6 +3609,7 @@ function importar(texto){
   listas.forEach(k=>{ if(!Array.isArray(S[k])) S[k]=[]; });
   /* un respaldo anterior a las comidas guardadas no trae la lista */
   if(!Array.isArray(S.platos)) S.platos=[];
+  if(!S.elec || typeof S.elec!=='object' || !S.elec.m) S.elec={f:'',m:{}};
   S.cfg = Object.assign(JSON.parse(JSON.stringify(DEF.cfg)), d.cfg||{});
   S.semana = +d.semana || 1;
   if(isNaN(fechaMs(S.cfg.inicio))){
@@ -3155,7 +3669,7 @@ document.addEventListener('input',e=>{
   if(el.dataset.ej){
     const {ej,s,fld}=el.dataset;
     let row=S.fuerza.find(x=>x.f===hoy()&&x.ej===ej&&x.serie===+s);
-    if(!row){ row={f:hoy(),sem:semanaHoy(),dia,ej,serie:+s,kg:'',reps:'',rir:''}; S.fuerza.push(row); }
+    if(!row){ row={f:hoy(),sem:semanaHoy(),dia,lugar:lugar(),ej,serie:+s,kg:'',reps:'',rir:''}; S.fuerza.push(row); }
     row[fld]=v; row.sem=semanaHoy(); save();
     const art=el.closest('.ex');
     const total=art.querySelectorAll('table.sets tbody tr').length;
@@ -3167,7 +3681,7 @@ document.addEventListener('input',e=>{
   if(el.dataset.ses){
     let row=S.sesiones.find(x=>x.f===hoy());
     if(!row){ row={f:hoy(),sem:semanaHoy(),dia}; S.sesiones.push(row); }
-    row[el.dataset.ses]=v; row.dia=dia; save(); return;
+    row[el.dataset.ses]=v; row.dia=dia; row.lugar=lugar(); save(); return;
   }
   if(el.dataset.car){
     const fld=el.dataset.car;
