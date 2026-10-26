@@ -255,6 +255,42 @@
          opacity:0;transition:.25s;z-index:99;pointer-events:none}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   .hide{display:none}
+  /* ---- anotar comida desde cualquier pestaña ----
+     El botón vive fuera de <main> para que render() no lo rehaga; sube cuando
+     aparece el cronómetro o el aviso de versión, que ocupan la misma esquina. */
+  body{padding-bottom:96px}
+  .fab{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:90;
+       background:var(--rust);color:#fff;border:0;border-radius:999px;padding:13px 18px;
+       font:600 15px 'Inter',sans-serif;box-shadow:0 6px 18px rgba(20,32,28,.32);cursor:pointer}
+  .fab:active{transform:translateY(1px)}
+  body:has(.crono.on) .fab,body:has(.upd.on) .fab{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+  /* el toast nace centrado abajo y tapaba el botón: va por encima de él */
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  body.hoja-on{overflow:hidden}
+  body.hoja-on .fab{display:none}
+  .hoja-fondo{position:fixed;inset:0;background:rgba(20,32,28,.38);z-index:100}
+  .hoja{position:fixed;left:0;right:0;bottom:0;z-index:101;background:var(--card);
+        border-radius:18px 18px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom,0px));
+        max-height:86vh;overflow-y:auto;box-shadow:0 -8px 30px rgba(20,32,28,.25)}
+  @media(min-width:700px){.hoja{left:50%;right:auto;width:520px;transform:translateX(-50%)}}
+  .hoja .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+  .hoja-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+  .hoja-h h3{font-family:'Barlow Condensed',sans-serif;font-size:22px;letter-spacing:.03em;
+             text-transform:uppercase;margin:0}
+  .hoja-h span{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-2);
+               display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .hoja-h input[type=time]{width:auto;padding:4px 6px;font-size:13px}
+  .hoja .prev{margin:8px 0 12px}
+  .hoja-ok{display:flex;justify-content:space-between;align-items:center;gap:10px;
+           background:var(--ink);color:#fff;border-radius:9px;padding:10px 12px;
+           font-size:13px;margin:0 0 12px}
+  .hoja-ok button.lnk{color:#9FD3BF;font-weight:700;text-decoration:none;flex:0 0 auto}
+  .hoja-fin{display:flex;justify-content:flex-end;margin-top:4px}
+  details.mas{margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
+  details.mas>summary{cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:19px;
+           font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--pine)}
+  details.mas>summary small{display:block;font-family:'Inter',sans-serif;font-size:12.5px;
+           font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2)}
   /* ---- aviso de versión nueva ---- */
   .upd{position:fixed;left:12px;right:12px;bottom:14px;z-index:98;
        background:var(--pine);color:#fff;border-radius:var(--r);
@@ -376,6 +412,9 @@
 
 <main class="wrap" id="main"></main>
 <div class="toast" id="toast"></div>
+<button class="fab" id="btnFab" aria-haspopup="dialog">＋ Comí algo</button>
+<div class="hoja-fondo hide" id="hojaFondo"></div>
+<div class="hoja hide" id="hoja" role="dialog" aria-modal="true" aria-labelledby="hojaT"></div>
 <div class="upd" id="upd" role="status">
   <p><b>Hay una versión nueva.</b> Tus registros no se tocan.</p>
   <button id="btnUpd">Actualizar</button>
@@ -2267,9 +2306,15 @@ function trozosComida(linea){
      dos cortados, no "2 cafe" y "leche". El match acá es ESTRICTO a
      propósito — con el de contenido, "arroz con carne" se quedaría entero
      y el arroz se perdería. */
-  const q = partirCantidad(t);
-  if(q.nombre && buscarAlimento(q.nombre, true)) return [t];
-  return t.split(/\s*[,;+]\s*|\s+y\s+|\s+con\s+/)
+  const entero = x => { const q = partirCantidad(x); return q.nombre && buscarAlimento(q.nombre, true); };
+  if(entero(t)) return [t];
+  /* ⚠La misma prueba va también POR TROZO, antes de cortar en " con ": si
+     no, "2 huevos duros, café con leche" daba café solo + leche entera
+     (126 kcal en vez de 68). Solo se veía con la frase sola, y en la hoja de
+     «Comí algo» lo normal es escribir varias cosas juntas (26-oct). */
+  return t.split(/\s*[,;+]\s*|\s+y\s+/)
+          .map(x=>x.trim()).filter(Boolean)
+          .flatMap(x => entero(x) ? [x] : x.split(/\s+con\s+/))
           .map(x=>x.trim()).filter(Boolean);
 }
 
@@ -2401,27 +2446,36 @@ function anotarFrase(txt, hora){
   const filas = partes.length ? partes : [{txt, n:1, unidad:'', ok:0,
                     id:'', kcal:null, p:null, c:null, g:null, agua:null}];
   filas.forEach(x=>{
-    S.alimentos.push({rid:ridCorto(), f, sem:semanaDe(f), hora:hora||horaAhora(),
+    x.rid = ridCorto();                 /* para que «Deshacer» sepa qué borrar */
+    S.alimentos.push({rid:x.rid, f, sem:semanaDe(f), hora:hora||horaAhora(),
       txt:x.txt, alim:x.id||'', nombre:x.nombre||'', n:x.n, unidad:x.unidad||'',
       gramos:(x.gramos===undefined?null:x.gramos), ok:x.ok, aprox:x.aprox?1:0,
       kcal:x.kcal, p:x.p, c:x.c, g:x.g, agua:x.agua});
   });
   return filas;
 }
-function avisarAnotado(filas){
+/* Con la hoja abierta el aviso va DENTRO de ella, con «Deshacer»: el toast
+   queda tapado por la hoja y un toque equivocado en un atajo no tenía vuelta. */
+function trasAnotar(filas){
+  saveNow(); render();
   const sin = filas.filter(x=>!x.ok).length;
+  const kcal = Math.round(filas.reduce((a,x)=>a+nz(x.kcal),0));
+  const prot = Math.round(filas.reduce((a,x)=>a+nz(x.p),0));
   const dia = comFecha===hoy() ? '' : ` el ${fechaCorta(comFecha)}`;
-  toast(sin ? `Anotado${dia} — ${sin} sin estimar` :
-              `Anotado${dia}: ${filas.map(x=>x.nombre||x.txt).join(' + ')}`);
+  const txt = `Anotado${dia}: ${filas.map(x=>x.nombre||x.txt).join(' + ')}`
+    + (sin ? ` — ${sin} sin estimar` : ` · ${kcal} kcal · ${prot} g prot`);
+  hojaUltimo = txt;
+  if(hojaAbierta){ hojaAviso = {txt, rids:filas.map(x=>x.rid)}; pintarHoja(); }
+  else toast(txt);
 }
 function agregarComida(){
   const inp = document.getElementById('comeTxt');
   const hora = (document.getElementById('comeHora')||{}).value || horaAhora();
   const filas = anotarFrase(inp && inp.value, hora);
-  if(!filas){ if(inp) inp.focus(); return; }
-  saveNow(); render();
-  avisarAnotado(filas);
-  const i2 = document.getElementById('comeTxt'); if(i2) i2.focus();
+  if(!filas){ if(inp) inp.focus(); return null; }
+  hojaBorrador = '';
+  trasAnotar(filas);
+  return filas;
 }
 
 /* ---- lo que repite ----
@@ -2446,7 +2500,9 @@ function frecuentes(n){
 /* Guarda una comida suya. Si el campo trae texto, guarda ESO; si está vacío,
    guarda lo que anotó ese día, unido por comas — que es como lo escribiría. */
 function guardarPlato(){
-  const inp = document.getElementById('comeTxt');
+  /* el campo vive en la hoja: solo cuenta si la hoja está abierta, o un
+     texto olvidado en la hoja cerrada se guardaría en vez de lo del día */
+  const inp = hojaAbierta ? document.getElementById('comeTxt') : null;
   const escrito = (inp && inp.value || '').trim();
   const delDia = itemsDia(comFecha||hoy())
     .slice().sort((a,b)=>String(a.hora||'').localeCompare(String(b.hora||'')))
@@ -2467,34 +2523,74 @@ function guardarPlato(){
 
 
 /* ---------- COMIDA ---------- */
-/* Los botones de un toque. Van dentro de la misma tarjeta del campo de texto
-   porque son la otra manera de hacer lo mismo: escribir una frase. */
-function repetirHTML(){
+/* ---- la hoja de «＋ Comí algo» ----
+   Anotar estaba en otra pestaña, debajo de una docena de casillas que no
+   hacen falta para anotar, y nunca se llenó (21-oct). Ahora se anota desde
+   cualquier pestaña con un botón fijo: una casilla y atajos de un toque.
+   Los atajos son FRASES, no macros: pasan por el mismo estimador que lo
+   escrito a mano. «Para partir» existe porque sin historial no hay
+   frecuentes; se va achicando a medida que aparecen los tuyos. */
+const PARA_PARTIR = ['2 huevos duros','café con leche','plátano',
+                     'pan con media palta','1 scoop proteína','yogur griego'];
+const AGUA = [['un vaso de agua','+ vaso'],['medio litro de agua','+ medio litro'],
+              ['1 litro de agua','+ 1 litro']];
+let hojaAbierta = false, hojaAviso = null, hojaBorrador = '', hojaUltimo = '';
+const chipFrase = (txt, etq, extra) =>
+  `<span class="chip"><button data-frec="${esc(txt)}">${esc(etq)}${extra||''}</button></span>`;
+function hojaHTML(hora){
+  const f = comFecha || hoy(), esHoy = f===hoy();
   const pl = S.platos||[], fr = frecuentes(8);
-  let h = `<div class="rep">`;
-  /* ⚠El botón de guardar va SIEMPRE, también cuando no hay nada guardado
-     todavía. Metido dentro del `if` de los chips quedaba un círculo cerrado:
-     solo aparecía cuando ya tenías comidas guardadas, así que la primera no
-     había manera de crearla. Se vio apretándolo, no leyéndolo. */
-  if(!pl.length && !fr.length){
-    return h + `<p class="prev" style="margin:0 0 9px">Cuando repitas una comida te va a aparecer acá para anotarla de un toque.</p>`
-      + `<button class="act ghost peq" id="btnPlato">Guardar como comida mía</button>`
-      + `<p class="prev" style="margin:7px 0 0">Guarda lo que tengas escrito arriba; si el campo está vacío, guarda todo lo que anotaste este día.</p></div>`;
-  }
+  const ya = new Set(fr.map(x=>normTxt(x.txt)));
+  const partir = PARA_PARTIR.filter(t=>!ya.has(normTxt(t))).slice(0, Math.max(0, 8-fr.length));
+  let h = `<div class="grab"></div>
+  <div class="hoja-h"><h3 id="hojaT">¿Qué comiste?</h3>
+    <span>${esHoy?'hoy':esc(fechaCorta(f))} · <input type="time" id="comeHora" value="${hora||horaAhora()}" aria-label="Hora"></span></div>
+  <div class="addcom">
+    <input type="text" id="comeTxt" autocomplete="off" enterkeyhint="done" value="${esc(hojaBorrador)}" placeholder="2 huevos duros">
+    <button class="act" id="btnCome">Anotar</button>
+  </div>
+  <p class="prev">Escríbelo como lo dirías. Varias cosas van separadas por coma o por «y». Para dictar, usa el micrófono del teclado.</p>`;
+  if(hojaAviso) h += `<div class="hoja-ok" role="status"><span>${esc(hojaAviso.txt)}</span>${
+    hojaAviso.rids.length?'<button class="lnk" data-deshacer="1">Deshacer</button>':''}</div>`;
+  h += `<div class="rep-t">Agua</div><div class="chips">${AGUA.map(([t,l])=>chipFrase(t,l)).join('')}</div>`;
   if(pl.length){
     h += `<div class="rep-t">Tus comidas</div><div class="chips">` +
       pl.map(p=>`<span class="chip"><button data-plato="${p.pid}" title="${esc(p.txt)}">${esc(p.nombre)}</button>`
         + `<button class="x" data-platoborrar="${p.pid}" aria-label="Borrar ${esc(p.nombre)}">✕</button></span>`).join('') +
       `</div>`;
   }
-  if(fr.length){
-    h += `<div class="rep-t">Lo que más repites</div><div class="chips">` +
-      fr.map(x=>`<span class="chip"><button data-frec="${esc(x.txt)}">${esc(x.txt)} <small>×${x.n}</small></button></span>`).join('') +
-      `</div>`;
-  }
-  h += `<button class="act ghost peq" id="btnPlato">Guardar como comida mía</button>`;
-  h += `<p class="prev" style="margin:7px 0 0">Guarda lo que tengas escrito arriba; si el campo está vacío, guarda todo lo que anotaste este día.</p>`;
-  return h + `</div>`;
+  if(fr.length) h += `<div class="rep-t">Lo que más repites</div><div class="chips">` +
+      fr.map(x=>chipFrase(x.txt, x.txt, ` <small>×${x.n}</small>`)).join('') + `</div>`;
+  if(partir.length) h += `<div class="rep-t">Para partir</div><div class="chips">` +
+      partir.map(t=>chipFrase(t, t)).join('') + `</div>`;
+  return h + `<div class="hoja-fin"><button class="act ghost" id="btnHojaListo">Listo</button></div>`;
+}
+/* Repinta la hoja conservando la hora que hayas cambiado a mano: si anotas el
+   almuerzo de las 13:00 en tres toques, los tres van a las 13:00. */
+function pintarHoja(){
+  const el = document.getElementById('hoja'); if(!el) return;
+  const hv = (document.getElementById('comeHora')||{}).value;
+  el.innerHTML = hojaHTML(hojaAbierta && hv ? hv : '');
+}
+function abrirHoja(){
+  /* desde otra pestaña se anota HOY; desde Comida, en el día que tengas abierto */
+  if(tab!=='comida' || !comFecha) comFecha = hoy();
+  hojaAbierta = false;                 /* para que pintarHoja ponga la hora de AHORA */
+  hojaAviso = null;
+  pintarHoja();
+  hojaAbierta = true;
+  document.getElementById('hoja').classList.remove('hide');
+  document.getElementById('hojaFondo').classList.remove('hide');
+  document.body.classList.add('hoja-on');
+}
+/* Cerrar sin anotar no pierde lo escrito: queda de borrador para la próxima. */
+function cerrarHoja(){
+  const inp = document.getElementById('comeTxt');
+  hojaBorrador = inp ? inp.value : '';
+  hojaAbierta = false; hojaAviso = null;
+  document.getElementById('hoja').classList.add('hide');
+  document.getElementById('hojaFondo').classList.add('hide');
+  document.body.classList.remove('hoja-on');
 }
 
 /* ---- el día es un SELECTOR, igual que en Medidas ----
@@ -2502,7 +2598,7 @@ function repetirHTML(){
    acordabas al día siguiente, no había dónde ponerla. Ahora eliges el día
    arriba y todo lo de la pestaña —lo que anotas, los totales, la corrección a
    mano y el tipo de día— es de ESE día. */
-let comFecha = null;
+let comFecha = null, comMas = false;
 function vComida(){
   const t=targets();
   const f = comFecha || (comFecha = hoy());
@@ -2512,22 +2608,8 @@ function vComida(){
   const pct=(v,o)=>Math.min(100,Math.round(nz(v)/o*100));
   const objKcal = d.tipo==='Alto'?t.alto : d.tipo==='Bajo'?t.bajo : t.kcal;
 
-  let h=`<h2>Comida</h2>
-  <p class="lede">Anótalo cuando lo comas y como lo dirías en voz alta: <b>2 huevos duros</b>, <b>un litro de agua</b>, <b>una taza de arroz con un pedazo de carne</b>. Las calorías y la proteína las estima la app — tú no tienes que saberlas.</p>
-  <div class="card">
-    <div class="eyebrow">Semana ${semanaDe(f)}${esHoy?' · hoy':''}</div>
-    <div style="margin:10px 0 12px"><label>Día que estás anotando</label>
-      <input type="date" data-comfecha="1" value="${f}" style="max-width:220px"></div>
-    <div class="addcom">
-      <input type="text" id="comeTxt" autocomplete="off" placeholder="2 huevos duros">
-      <input type="time" id="comeHora" value="${horaAhora()}">
-      <button class="act" id="btnCome">Agregar</button>
-    </div>
-    <p class="prev" style="margin:9px 0 0">Van varias cosas juntas separadas por coma o por «y». Si algo no lo conoce, igual queda anotado y sale marcado para que yo lo estime.</p>
-    ${repetirHTML()}
-  </div>
-
-  <h2>Va del ${esHoy?'día':fechaCorta(f)}</h2>
+  let h=`<h2>Comida${esHoy?'':' · '+fechaCorta(f)}</h2>
+  ${esHoy ? '' : `<p class="lede">Estás viendo el ${fechaCorta(f)}. <button class="lnk" data-comir="${hoy()}">Volver a hoy</button></p>`}
   <div class="card">
     <div class="eyebrow" id="lblKcal">Calorías · objetivo ${objKcal}</div>
     <div class="bar"><i id="barKcal" class="${nz(cd.kcal)>objKcal*1.05?'over':''}" style="width:${pct(cd.kcal,objKcal)}%"></i></div>
@@ -2545,34 +2627,12 @@ function vComida(){
       cd.hayMan ? 'Estás usando un total escrito a mano; manda ese y no la suma.'
       : cd.items.length ? `Sumado de tus ${cd.items.length} registros de ${esHoy?'hoy':fechaCorta(f)}.${cd.sinEstimar?` <b class="sube">${cd.sinEstimar} sin estimar</b>, así que el total va corto.`:''}`
       : `Todavía no has anotado nada ${esHoy?'hoy':'ese día'}.`}</p>
-    <div style="margin-top:12px">
-      <button class="act ghost" id="btnManual">${cd.hayMan?'Ver el total a mano':'Corregir el total a mano'}</button>
-      ${cd.hayMan?`<button class="act ghost" id="btnAuto" style="margin-left:8px">Volver al calculado</button>`:''}
-    </div>
-    <div id="manualBox" class="${cd.hayMan?'':'hide'}" style="margin-top:12px">
-      <p class="prev" style="margin:0 0 8px">Solo si tienes el dato de verdad — la etiqueta de un envase, por ejemplo. Lo que escribas acá pisa la suma del día.</p>
-      <div class="grid g4">
-        <div><label>Kcal</label><input type="number" inputmode="numeric" data-com="kcal" value="${d.kcal??''}"></div>
-        <div><label>Proteína g</label><input type="number" inputmode="numeric" data-com="p" value="${d.p??''}"></div>
-        <div><label>Carbos g</label><input type="number" inputmode="numeric" data-com="c" value="${d.c??''}"></div>
-        <div><label>Grasa g</label><input type="number" inputmode="numeric" data-com="g" value="${d.g??''}"></div>
-      </div>
-    </div>
-    <div class="grid g3" style="margin-top:14px">
-      <div><label>Tipo de día</label><select data-com="tipo">
-        ${['Alto','Normal','Bajo'].map(x=>`<option ${d.tipo===x?'selected':''}>${x}</option>`).join('')}
-      </select></div>
-      <div><label>Ayuno h</label><input type="number" inputmode="numeric" data-com="ayuno" value="${d.ayuno??''}"></div>
-      <div><label>Adherencia 1-5</label><input type="number" inputmode="numeric" min="1" max="5" data-com="adh" value="${d.adh??''}"></div>
-    </div>
-    <div style="margin-top:10px"><label>Hambre, energía, notas</label>
-      <input data-com="nota" value="${esc(d.nota||'')}"></div>
   </div>
 
   <h2>Lo que anotaste ${esHoy?'hoy':'el '+fechaCorta(f)}</h2>`;
 
   if(!cd.items.length){
-    h+=`<div class="card"><p class="prev" style="margin:0">Nada todavía. Anota arriba lo primero que ${esHoy?'comas o tomes':'hayas comido ese día'}.</p></div>`;
+    h+=`<div class="card"><p style="margin:0;font-size:14px">Nada todavía. Toca <b>＋ Comí algo</b> abajo y escríbelo como lo dirías en voz alta: <b>2 huevos duros</b>, <b>un litro de agua</b>, <b>una taza de arroz con un pedazo de carne</b>. Las calorías y la proteína las estima la app.</p></div>`;
   }else{
     /* Filas de DOS líneas y no una tabla: con seis columnas en 414 px el
        texto se parte en tres líneas y el botón de borrar queda cortado contra
@@ -2604,6 +2664,7 @@ function vComida(){
       }
       h+=`</div></div>`;
     });
+    h+=`<div style="margin-top:12px"><button class="act ghost peq" id="btnPlato">Guardar lo de ${esHoy?'hoy':'este día'} como comida mía</button></div>`;
     if(cd.sinEstimar) h+=`<p class="prev" style="margin:10px 0 0">Los que dicen <b>sin estimar</b> no están en la tabla de alimentos. Puedes ponerles tú las kcal y la proteína ahí mismo, o dejarlos así: salen marcados en el resumen para que yo los estime y los agregue.</p>`;
     h+=`</div>`;
   }
@@ -2611,6 +2672,34 @@ function vComida(){
   /* ---- los días que ya tienen algo anotado ----
      Sirve para dos cosas: ver de un vistazo si se te quedó un día sin anotar,
      y saltar a corregirlo sin pelear con el calendario del teléfono. */
+  h+=`<details class="mas" id="comMas"${comMas?' open':''}><summary>Más<small>Otro día, tipo de día, ayuno, notas, total a mano, plantillas</small></summary>
+  <div class="card" style="margin-top:12px">
+    <div><label>Día que estás viendo</label>
+      <input type="date" data-comfecha="1" value="${f}" style="max-width:220px"></div>
+    <p class="prev" style="margin:8px 0 0">Semana ${semanaDe(f)}. Lo que anotes con <b>＋ Comí algo</b> desde esta pestaña va a este día.</p>
+    <div style="margin-top:14px">
+      <button class="act ghost" id="btnManual">${cd.hayMan?'Ver el total a mano':'Corregir el total a mano'}</button>
+      ${cd.hayMan?`<button class="act ghost" id="btnAuto" style="margin-left:8px">Volver al calculado</button>`:''}
+    </div>
+    <div id="manualBox" class="${cd.hayMan?'':'hide'}" style="margin-top:12px">
+      <p class="prev" style="margin:0 0 8px">Solo si tienes el dato de verdad — la etiqueta de un envase, por ejemplo. Lo que escribas acá pisa la suma del día.</p>
+      <div class="grid g4">
+        <div><label>Kcal</label><input type="number" inputmode="numeric" data-com="kcal" value="${d.kcal??''}"></div>
+        <div><label>Proteína g</label><input type="number" inputmode="numeric" data-com="p" value="${d.p??''}"></div>
+        <div><label>Carbos g</label><input type="number" inputmode="numeric" data-com="c" value="${d.c??''}"></div>
+        <div><label>Grasa g</label><input type="number" inputmode="numeric" data-com="g" value="${d.g??''}"></div>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      <div><label>Tipo de día</label><select data-com="tipo">
+        ${['Alto','Normal','Bajo'].map(x=>`<option ${d.tipo===x?'selected':''}>${x}</option>`).join('')}
+      </select></div>
+      <div><label>Ayuno h</label><input type="number" inputmode="numeric" data-com="ayuno" value="${d.ayuno??''}"></div>
+      <div><label>Adherencia 1-5</label><input type="number" inputmode="numeric" min="1" max="5" data-com="adh" value="${d.adh??''}"></div>
+    </div>
+    <div style="margin-top:10px"><label>Hambre, energía, notas</label>
+      <input data-com="nota" value="${esc(d.nota||'')}"></div>
+  </div>`;
   const dias = diasComida().reverse().slice(0,14);
   if(dias.length){
     h+=`<h2>Días anotados</h2>
@@ -2660,7 +2749,8 @@ function vComida(){
   h+=`</tbody></table></div>
 
   <div class="note"><b>Sobre el ayuno.</b> El 16/8 sirve solo si te facilita comer menos: no hay quema extra de grasa. El riesgo concreto es quedarte corto de proteína en 8 horas — si ayunas, apunta a tres comidas de 55 a 65 g cada una. Nunca ayunes el día de piernas.</div>
-  <div class="note"><b>Sobre las dietas de jugos.</b> No están en el plan a propósito. Aportan casi cero proteína, y con tu peso entrenando cinco veces por semana en déficit, esa falta se cubre degradando músculo. Si lo que buscas es la sensación de reinicio, el día bajo en carbos con verduras abundantes te la da sin ese costo.</div>`;
+  <div class="note"><b>Sobre las dietas de jugos.</b> No están en el plan a propósito. Aportan casi cero proteína, y con tu peso entrenando cinco veces por semana en déficit, esa falta se cubre degradando músculo. Si lo que buscas es la sensación de reinicio, el día bajo en carbos con verduras abundantes te la da sin ese costo.</div>
+  </details>`;
   return h;
 }
 
@@ -3471,6 +3561,21 @@ document.addEventListener('click',e=>{
   if(b.dataset.toggle!==undefined){
     const a=b.closest('.ex'); a.dataset.open = a.dataset.open==='1'?'0':'1'; return;
   }
+  if(b.id==='btnFab'){ abrirHoja(); return; }
+  /* «Listo» con algo escrito lo anota antes de cerrar: es lo que uno espera
+     al escribir y tocar Listo */
+  if(b.id==='btnHojaListo'){
+    const inp=document.getElementById('comeTxt'), txt=(inp&&inp.value||'').trim();
+    if(txt){ const filas=agregarComida(); cerrarHoja(); if(filas) toast(hojaUltimo); return; }
+    cerrarHoja(); return;
+  }
+  if(b.dataset.deshacer){
+    const rids=new Set(hojaAviso?hojaAviso.rids:[]);
+    if(!rids.size) return;
+    S.alimentos=S.alimentos.filter(x=>!rids.has(x.rid));
+    saveNow(); render();
+    hojaAviso={txt:'Deshecho: no quedó anotado.', rids:[]}; pintarHoja(); return;
+  }
   if(b.id==='btnCome'){ agregarComida(); return; }
   if(b.id==='btnManual'){ document.getElementById('manualBox').classList.toggle('hide'); return; }
   if(b.id==='btnAuto'){
@@ -3486,18 +3591,18 @@ document.addEventListener('click',e=>{
     const p=(S.platos||[]).find(x=>x.pid===b.dataset.plato); if(!p) return;
     const filas=anotarFrase(p.txt, (document.getElementById('comeHora')||{}).value);
     if(!filas) return;
-    saveNow(); render(); avisarAnotado(filas); return;
+    trasAnotar(filas); return;
   }
   if(b.dataset.platoborrar){
     const p=(S.platos||[]).find(x=>x.pid===b.dataset.platoborrar); if(!p) return;
     if(!confirm(`¿Borrar la comida «${p.nombre}»?\n\n${p.txt}\n\nNo borra nada de lo que ya anotaste.`)) return;
     S.platos=S.platos.filter(x=>x.pid!==p.pid);
-    saveNow(); render(); toast('Comida borrada'); return;
+    saveNow(); render(); if(hojaAbierta) pintarHoja(); toast('Comida borrada'); return;
   }
   if(b.dataset.frec!==undefined){
     const filas=anotarFrase(b.dataset.frec, (document.getElementById('comeHora')||{}).value);
     if(!filas) return;
-    saveNow(); render(); avisarAnotado(filas); return;
+    trasAnotar(filas); return;
   }
   if(b.dataset.comeborrar){
     const r=(S.alimentos||[]).find(x=>x.rid===b.dataset.comeborrar);
@@ -3662,7 +3767,13 @@ document.addEventListener('change',e=>{
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter' && e.target && e.target.id==='comeTxt'){ e.preventDefault(); agregarComida(); }
+  if(e.key==='Escape' && hojaAbierta) cerrarHoja();
 });
+/* el fondo de la hoja no es un botón: el handler de click de arriba lo ignora */
+document.getElementById('hojaFondo').addEventListener('click', cerrarHoja);
+/* render() rehace la pestaña y un <details> vuelve cerrado: cambiar el día
+   desde «Más» lo cerraría en la cara. 'toggle' no burbujea, de ahí el capture. */
+document.addEventListener('toggle', e=>{ if(e.target.id==='comMas') comMas = e.target.open; }, true);
 
 document.addEventListener('input',e=>{
   const el=e.target; const v=el.value;
